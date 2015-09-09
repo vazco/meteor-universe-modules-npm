@@ -34,8 +34,8 @@ To do that please create and add in application space file `myfile.import-npm.js
 And now, you can import something like this: `import {npmPackage} from 'myfile!npm'`
 
 ### Options
-Because to bundling this package use browserify.
-You can pass options in file `browserify.options.json`
+This package uses browserify for bundling.
+You can pass options in file `browserify.options.json` to make changes on this process
 
 ```
 {
