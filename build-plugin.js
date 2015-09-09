@@ -103,7 +103,7 @@ getBrowserifyOptions = function (step) {
     optionsFileName = step.fullInputPath.slice(0, -2) + 'browserify.options.json';
     if (fs.existsSync(optionsFileName)) {
         try {
-            userOptions = JSON.parse(fs.readFileSync(optionsFileName, 'utf8'));
+            userOptions = JSONC.parse(fs.readFileSync(optionsFileName, 'utf8'));
         } catch (_error) {
             e = _error;
             step.error({
@@ -241,7 +241,11 @@ var installPackages = Meteor.wrapAsync(function (step, packageList, cb) {
     }
     npm.load(function(err){
         if (err) {
-            return console.error(err.message);
+            step.error({
+                message: 'Couldn\'t read JSON data: ' + err.toString(),
+                sourcePath: step.inputPath
+            });
+            return;
         }
         npm.commands.install(basedir, packages, cb);
     });
