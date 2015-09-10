@@ -57,7 +57,7 @@ You can pass options in file `browserify.options.json` to make changes on this p
 *Earlier example shows how add transformation that exposes globals as modules so they can be required*
 
 ### Restrictions
-Because in bundling process, this package uses a browserify. Only browserifyable npm packages will work correctly. If you want use nono browserifyable packages please use meteor npm and next,  export them as regular module. 
+Because in bundling process, this package uses a browserify. Only browserifyable npm packages will work correctly. If you want use none browserifyable packages please use meteor npm and next,  export them as regular module. 
 
 ### Copyright and license
 
