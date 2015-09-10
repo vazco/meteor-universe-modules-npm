@@ -28,7 +28,7 @@ import {classnames} from '{username:mypackage}/packages!npm';
 // prefix package name like before and add '!npm' on the end
 import {classnames} from '{username:mypackage}/packages!npm';
 
-// Name of package is converted from a dash/dot/underscore/space separated string
+// Name of package is converted from a dash/dot/underscore
 // to the camelCase variable name: foo-bar → fooBar
 import {typographicNumbers} from '{username:mypackage}/packages!npm';
 ```
