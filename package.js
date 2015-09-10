@@ -1,6 +1,6 @@
 Package.describe({
     name: 'universe:modules-npm',
-    version: '0.5.0',
+    version: '0.5.5',
     // Brief, one-line summary of the package.
     summary: 'Import of npm packages that works on client and server',
     // URL to the Git repository containing the source code for this package.
@@ -20,7 +20,8 @@ Package.registerBuildPlugin({
         'exorcist': '0.4.0',
         'json-comments': '0.2.1',
         'exposify': '0.4.3',
-        npm: '2.14.2'
+        'camelcase': '1.2.1',
+        'npm': '2.14.2'
     }
 });
 

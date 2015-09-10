@@ -1,6 +1,6 @@
 var Browserify, checkFileChanges, checkFilename, envify, exorcist, handler, getBasedir,
     getBrowserifyOptions, getDebug, getFilesToCheck, getResult, getString, fs, stream,
-    hasProp = {}.hasOwnProperty, JSONC, prepareSource, getModuleId, npm,
+    hasProp = {}.hasOwnProperty, JSONC, prepareSource, getModuleId, npm, camelCase,
     indexOf = [].indexOf || function (item) {
             for (var i = 0, l = this.length; i < l; i++) {
                 if (i in this && this[i] === item) return i;
@@ -14,6 +14,7 @@ stream = Npm.require('stream');
 JSONC = Npm.require('json-comments');
 npm = Npm.require('npm');
 fs = Npm.require('fs');
+camelCase = Npm.require('camelcase');
 handler = function (step) {
     var browserify, browserifyOptions, bundle, e, envifyOptions, externalifyOptions,
         exorcisedBundle, mapFileName, ref, ref1, sourceMap, string, transformName, transformOptions;
@@ -154,7 +155,7 @@ prepareSource = function (step) {
     var source = '';
     if (config) {
         _.each(config, function (version, packageName) {
-            source += '_export("' + packageName + '", require("' + packageName + '"));\n';
+            source += '_export("' + camelCase(packageName) + '", require("' + packageName + '"));\n';
         });
         installPackages(step, config);
     }

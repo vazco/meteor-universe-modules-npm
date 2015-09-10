@@ -18,16 +18,21 @@ import {classnames} from '{username:mypackage}/packages!npm';
 {
   "classnames": "2.1.3",
   // You can even attach comments here
-  "virtual-dom": "2.1.1"
+  "typographic-numbers": "0.2.1"
 }
 ```
 
 4. You can import already added packages.
 
 ```
-//prefix package name like before and add '!npm' on the end
+// prefix package name like before and add '!npm' on the end
 import {classnames} from '{username:mypackage}/packages!npm';
+
+// Name of package is converted from a dash/dot/underscore/space separated string
+// to the camelCase variable name: foo-bar → fooBar
+import {typographicNumbers} from '{username:mypackage}/packages!npm';
 ```
+
 #### In app
 You can use It outside of package too.
 To do that please create and add in application space file `myfile.import-npm.json`.
