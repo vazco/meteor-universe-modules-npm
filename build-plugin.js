@@ -65,9 +65,9 @@ handler = function (step) {
 
 Plugin.registerSourceHandler('import-npm.json', handler);
 
-checkFileChanges = function (step, cacheFileName) {
+checkFileChanges = function (step, cacheFileName, uniNpmDir) {
     var cachedTime, file, i, len, modifiedTime, ref;
-    if (!(fs.existsSync(cacheFileName) && fs.existsSync(step.fullInputPath + '.map'))) {
+    if (!(fs.existsSync(cacheFileName) && fs.existsSync(uniNpmDir + step.inputPath + '.map'))) {
         return true;
     }
     cachedTime = fs.statSync(cacheFileName).mtime.getTime();
@@ -195,7 +195,7 @@ getResult = function (step, bundle, useCache) {
     if (useCache) {
         var uniNpmDir = step.fullInputPath.slice(0, -step.inputPath.length) + '.universe-npm/';
         cacheFileName = uniNpmDir+ step.inputPath + '.cached';
-        compileChanges = checkFileChanges(step, cacheFileName);
+        compileChanges = checkFileChanges(step, cacheFileName, uniNpmDir);
         if (compileChanges) {
             cacheFileStream = fs.createWriteStream(cacheFileName, {
                 flags: 'w',
