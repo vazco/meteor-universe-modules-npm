@@ -36,7 +36,7 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
 
     addCompileResult(file, compileResult) {
         return file.addJavaScript({
-            path      : file.getPathInPackage(),
+            path      : file.getPathInPackage() + '.js',
             sourcePath: file.getPathInPackage(),
             data      : compileResult.source,
             sourceMap : compileResult.sourceMap

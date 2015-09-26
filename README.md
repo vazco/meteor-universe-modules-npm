@@ -44,17 +44,15 @@ You can pass options in the same file under key **browserify** to make changes o
 ```
 {
   "dependencies": {
-     "exposify": "0.4.3"
+     "browserify-global-shim": "1.0.0"
   },
   "browserify": {
       "transforms": {
-        "exposify": {
-          "expose": {
-            "react": "Package['react-runtime'].React"
-          }
+        "browserify-global-shim": {
+          "react": "Package['react-runtime'].React"
         }
       }
-    }
+  }
 }
 ```
 
