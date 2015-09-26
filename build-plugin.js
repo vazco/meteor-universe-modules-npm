@@ -63,7 +63,7 @@ handler = function (step) {
     }
 };
 
-Plugin.registerSourceHandler('import-npm.json', handler);
+Plugin.registerSourceHandler('npm.json', handler);
 
 checkFileChanges = function (step, cacheFileName, uniNpmDir) {
     var cachedTime, file, i, len, modifiedTime, ref;

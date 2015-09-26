@@ -1,24 +1,26 @@
-<img src="http://uniproject.vazco.eu/black_logo.png" />
+<a href="http://unicms.io"><img src="http://unicms.io/banners/standalone.png" /></a>
 # Universe Modules NPM
 Extension for package universe:modules that adds possibility of bundling npm packages into universe modules. 
 
 And you can use it, just like that:
 ```
-import {classnames} from '{username:mypackage}/packages!npm';
+import cn from '{username:mypackage}/packages/classnames';
 ```
 
 ### How It works
 
 #### Into Package
 1. Create file <name>.import-npm.json, like packages.import-npm.json
-2. In package.js add dependency `universe:modules-npm` (by api.use) and packages.import-npm.json (by api.addFiles)
-3. Add some packages (as a name:version pairs) to this file:
+2. In package.js add dependency `universe:modules-npm` (by api.use) and packages.npm.json (by api.addFiles)
+3. Add some packages under key **dependencies** (as a name:version pairs) to this file:
 
 ```
 {
-  "classnames": "2.1.3",
-  // You can even attach comments here
-  "typographic-numbers": "0.2.1"
+  "dependencies": {
+      "classnames": "2.1.3",
+      // You can even attach comments here
+      "typographic-numbers": "0.2.1"
+  }
 }
 ```
 
@@ -26,31 +28,33 @@ import {classnames} from '{username:mypackage}/packages!npm';
 
 ```
 // prefix package name like before and add '!npm' on the end
-import {classnames} from '{username:mypackage}/packages!npm';
-
-// Name of package is converted from a dash/dot/underscore
-// to the camelCase variable name: foo-bar → fooBar
-import {typographicNumbers} from '{username:mypackage}/packages!npm';
+import classNames from '{username:mypackage}/packages/classnames';
+import typographicNumbers from '{username:mypackage}/packages/typographic-numbers';
 ```
 
 #### In app
 You can use It outside of package too.
-To do that please create and add in application space file `myfile.import-npm.json`.
-And now, you can import something like this: `import {npmPackage} from 'myfile!npm'`
+To do that please create and add in application space file `myfile.npm.json`.
+And now, you can import something like this: `import classNames from 'myfile/classnames'`
 
 ### Options
 This package uses browserify for bundling.
-You can pass options in file `browserify.options.json` to make changes on this process
+You can pass options in the same file under key **browserify** to make changes on this process
 
 ```
 {
-  "transforms": {
-    "exposify": {
-      "expose": {
-        "react": "Package['react-runtime'].React"
+  "dependencies": {
+     "exposify": "0.4.3"
+  },
+  "browserify": {
+      "transforms": {
+        "exposify": {
+          "expose": {
+            "react": "Package['react-runtime'].React"
+          }
+        }
       }
     }
-  }
 }
 ```
 
