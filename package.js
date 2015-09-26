@@ -12,7 +12,7 @@ Package.describe({
 
 Package.registerBuildPlugin({
     name: 'UniverseModulesNPMBuilder',
-    use: ['meteor', 'underscore@1.0.3', 'ecmascript', 'caching-compiler@1.0.0', 'react-runtime'],
+    use: ['meteor', 'underscore@1.0.3', 'ecmascript', 'caching-compiler@1.0.0'],
     sources: ['builder.js'],
     npmDependencies: {
         'browserify': '11.1.0',
