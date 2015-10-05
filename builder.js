@@ -2,7 +2,7 @@ Browserify = Npm.require('browserify');
 envify = Npm.require('envify/custom');
 exorcist = Npm.require('exorcist');
 stream = Npm.require('stream');
-JSONC = Npm.require('json-comments');
+stripJsonComments = Npm.require('strip-json-comments');
 npm = Npm.require('npm');
 os = Npm.require('os');
 camelCase = Npm.require('camelcase');
@@ -154,7 +154,7 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
 
     prepareSource(file) {
         const source = new stream.PassThrough();
-        const config = JSONC.parse(file.getContentsAsString());
+        const config = JSON.parse(stripJsonComments(file.getContentsAsString()));
         const moduleId = this.getModuleId(file);
         let lines = '', standalone = '';
         const prepareRegister = (modId, exp) => 'System.register("' + modId + '", [],function(_export){' +

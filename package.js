@@ -18,7 +18,7 @@ Package.registerBuildPlugin({
         'browserify': '11.1.0',
         'envify': '3.4.0',
         'exorcist': '0.4.0',
-        'json-comments': '0.2.1',
+        'strip-json-comments': '1.0.4',
         'exposify': '0.4.3',
         'camelcase': '1.2.1',
         'npm': '2.14.2'
@@ -28,7 +28,7 @@ Package.registerBuildPlugin({
 Package.onUse(function (api) {
     api.versionsFrom('1.1.0.3');
     api.use([
-        'universe:modules'
+        'universe:modules@0.5.0'
     ]);
 
     // Use Meteor 1.2 build plugin
