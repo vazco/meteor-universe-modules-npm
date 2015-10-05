@@ -10,8 +10,8 @@ import cn from '{username:mypackage}/packages/classnames';
 ### How It works
 
 #### Into Package
-1. Create file <name>.import-npm.json, like packages.import-npm.json
-2. In package.js add dependency `universe:modules-npm` (by api.use) and packages.npm.json (by api.addFiles)
+1. Create file <name>.npm.json, like packages.import-npm.json and add it to package.js by api.addFiles
+2. In package.js add dependency `universe:modules-npm`
 3. Add some packages under key **dependencies** (as a name:version pairs) to this file:
 
 ```
@@ -27,7 +27,6 @@ import cn from '{username:mypackage}/packages/classnames';
 4. You can import already added packages.
 
 ```
-// prefix package name like before and add '!npm' on the end
 import classNames from '{username:mypackage}/packages/classnames';
 import typographicNumbers from '{username:mypackage}/packages/typographic-numbers';
 ```
@@ -48,6 +47,7 @@ You can pass options in the same file under key **browserify** to make changes o
   },
   "browserify": {
       "transforms": {
+      //using react from meteor package in npm modules
         "browserify-global-shim": {
           "react": "Package['react-runtime'].React"
         }
