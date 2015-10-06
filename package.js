@@ -12,7 +12,7 @@ Package.describe({
 
 Package.registerBuildPlugin({
     name: 'UniverseModulesNPMBuilder',
-    use: ['meteor', 'underscore@1.0.3', 'ecmascript', 'caching-compiler@1.0.0'],
+    use: ['meteor', 'underscore@1.0.3', 'ecmascript@0.1.5', 'caching-compiler@1.0.0'],
     sources: ['builder.js'],
     npmDependencies: {
         'browserify': '11.1.0',
@@ -26,7 +26,7 @@ Package.registerBuildPlugin({
 });
 
 Package.onUse(function (api) {
-    api.versionsFrom('1.1.0.3');
+    api.versionsFrom('1.2.0.2');
     api.use([
         'universe:modules@0.5.0'
     ]);
@@ -34,5 +34,5 @@ Package.onUse(function (api) {
     // Use Meteor 1.2 build plugin
     api.use('isobuild:compiler-plugin@1.0.0');
 
-    api.use('react-runtime', {weak:true});
+    api.use('react-runtime@0.13.3_7', {weak:true});
 });
