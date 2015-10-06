@@ -10,14 +10,14 @@ fs = Plugin.fs;
 path = Plugin.path;
 
 class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
-    constructor() {
+    constructor () {
         super({
-            compilerName    : 'UniverseModulesNPMBuilder',
+            compilerName: 'UniverseModulesNPMBuilder',
             defaultCacheSize: 1024 * 1024 * 10
         });
     }
 
-    getCacheKey(file) {
+    getCacheKey (file) {
         return [
             file.getSourceHash(),
             file.getDeclaredExports(),
@@ -29,21 +29,21 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
         return compileResult.source.length + ((compileResult.sourceMap && compileResult.sourceMap.length) || 0);
     }
 
-    getBasedir(file) {
+    getBasedir (file) {
         let basedir = Plugin.convertToStandardPath(path.join(os.tmpdir(), 'universe-npm'));
-        return Plugin.convertToOSPath(basedir + '/' + (file.getPackageName()||'' + file.getPathInPackage()).replace(/[^a-zA-Z0-9\-]/, '_'));
+        return Plugin.convertToOSPath(basedir + '/' + (file.getPackageName() || '' + file.getPathInPackage()).replace(/[^a-zA-Z0-9\-]/, '_'));
     }
 
-    addCompileResult(file, compileResult) {
+    addCompileResult (file, compileResult) {
         return file.addJavaScript({
-            path      : file.getPathInPackage() + '.js',
+            path: file.getPathInPackage() + '.js',
             sourcePath: file.getPathInPackage(),
-            data      : compileResult.source,
-            sourceMap : compileResult.sourceMap
+            data: compileResult.source,
+            sourceMap: compileResult.sourceMap
         });
     }
 
-    getRoot(altPackageName) {
+    getRoot (altPackageName) {
         var index, root;
         root = this.getPackageName();
         if (root != null) {
@@ -57,7 +57,7 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
         return root;
     }
 
-    compileOneFile(file, files) {
+    compileOneFile (file, files) {
         var browserify, bundle, compileResult, e;
         file.getRoot = this.getRoot.bind(file);
         try {
@@ -68,7 +68,7 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
             bundle = this.getBundle(browserify, file);
             compileResult = this.getCompileResult(bundle);
             return {
-                compileResult        : compileResult,
+                compileResult: compileResult,
                 referencedImportPaths: []
             };
         } catch (_error) {
@@ -79,7 +79,7 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
         }
     }
 
-    applyTransforms(browserify, browserifyOptions) {
+    applyTransforms (browserify, browserifyOptions) {
         var envifyOptions, transformName, transformOptions, transforms;
         envifyOptions = browserifyOptions.transforms.envify;
         delete browserifyOptions.transforms.envify;
@@ -92,7 +92,7 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
         browserify.transform(envify(envifyOptions));
     }
 
-    getBundle(browserify, file) {
+    getBundle (browserify, file) {
         var bundle, exorcisedBundle, mapFilePath;
         bundle = browserify.bundle();
         bundle.setEncoding('utf8');
@@ -103,7 +103,7 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
         return exorcisedBundle;
     }
 
-    getCompileResult(bundle) {
+    getCompileResult (bundle) {
         var result, sourceMap;
         result = {
             source: getString(bundle)
@@ -116,17 +116,17 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
         return result;
     }
 
-    getBrowserifyOptions(file, userOptions = {}) {
+    getBrowserifyOptions (file, userOptions = {}) {
         let defaultOptions, transform;
         let transforms = {
             envify: {
                 NODE_ENV: this.getDebug() ? 'development' : 'production',
-                _       : 'purge'
+                _: 'purge'
             }
         };
         defaultOptions = {
             basedir: this.getBasedir(file),
-            debug  : true,
+            debug: true,
             transforms
         };
         _.defaults(userOptions, defaultOptions);
@@ -138,7 +138,7 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
         return userOptions;
     }
 
-    getDebug() {
+    getDebug () {
         var debug, key, _i, _len, _ref1;
         debug = true;
         _ref1 = process.argv;
@@ -152,20 +152,21 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
         return debug;
     }
 
-    prepareSource(file) {
+    prepareSource (file) {
         const source = new stream.PassThrough();
         const config = JSON.parse(stripJsonComments(file.getContentsAsString()));
         const moduleId = this.getModuleId(file);
         let lines = '', standalone = '';
-        const prepareRegister = (modId, exp) => 'System.register("' + modId + '", [],function(_export){' +
-        'return {setters: [],execute:function(){' + exp + '}};});';
+        const prepareRegister = (modId, exp) => {
+            return `System.registerDynamic("${modId}", [], true, function(_require, _exports, _module) {${exp}});`;
+        };
 
         if (config && config.dependencies) {
             _.each(config.dependencies, function (version, packageName) {
-                lines += '_export("' + camelCase(packageName) + '", require("' + packageName + '"));';
+                lines += `_exports.${camelCase(packageName)} = require('${packageName}');`;
                 standalone += prepareRegister(
                     moduleId + '/' + packageName,
-                    '_export("default", require("' + packageName + '"));'
+                    `_module.exports = require('${packageName}');`
                 );
             });
             installPackages(this.getBasedir(file), file, config.dependencies);
@@ -176,7 +177,7 @@ class UniverseModulesNPMBuilder extends MultiFileCachingCompiler {
         return {source, config};
     }
 
-    getModuleId(file) {
+    getModuleId (file) {
         // Relative path of file to the package or app root directory (always uses forward slashes)
         const filePath = file.getPathInPackage();
 
@@ -226,7 +227,7 @@ var installPackages = Meteor.wrapAsync(function (basedir, file, packageList, cb)
     npm.load(function (err) {
         if (err) {
             file.error({
-                message   : 'Couldn\'t read JSON data: ' + err.toString(),
+                message: 'Couldn\'t read JSON data: ' + err.toString(),
                 sourcePath: file.getPackageName() + '/' + file.getPathInPackage()
             });
             return;
