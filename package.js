@@ -1,6 +1,6 @@
 Package.describe({
     name: 'universe:modules-npm',
-    version: '0.8.0',
+    version: '0.8.1',
     // Brief, one-line summary of the package.
     summary: 'Import of npm packages that works on client and server',
     // URL to the Git repository containing the source code for this package.
@@ -17,7 +17,8 @@ Package.registerBuildPlugin({
     npmDependencies: {
         'browserify': '11.1.0',
         'envify': '3.4.0',
-        'exorcist': '0.4.0',
+        'exorcist-stream': '0.4.0',
+        'strung': '1.0.4',
         'strip-json-comments': '1.0.4',
         'exposify': '0.4.3',
         'camelcase': '1.2.1',
