@@ -10,14 +10,15 @@ import cn from '{username:mypackage}/packages/classnames';
 ### How It works
 
 #### Into Package
-1. Create file <name>.npm.json, like packages.import-npm.json and add it to package.js by api.addFiles
+1. Create file <name>.npm.json, like myPackages.import-npm.json and add it to package.js by api.addFiles
 2. In package.js add dependency `universe:modules-npm`
-3. Add some packages under key **dependencies** (as a name:version pairs) to this file:
+3. Add some packages under key **packages** (as a name:version pairs) to this file:
 
 ```
 {
   "packages": {
       "classnames": "2.1.3",
+      "react-widgets": "2.8.2",
       // You can even attach comments here
       "typographic-numbers": "0.2.1"
   }
@@ -27,11 +28,12 @@ import cn from '{username:mypackage}/packages/classnames';
 4. You can import already added packages.
 
 ```
-import classNames from '{username:mypackage}/packages/classnames';
-import typographicNumbers from '{username:mypackage}/packages/typographic-numbers';
+import classNames from '{username:mypackage}/myPackages/classnames';
+import typographicNumbers from '{username:mypackage}/myPackages/typographic-numbers';
+import {globalizeDateLocalizer} from '{username:mypackage}/myPackages/react-widgets/lib/globalize-localizers';
 
 // All packages from file
-import {typographicNumbers, classnames} from '{username:mypackage}/packages';
+import {typographicNumbers, classnames} from '{username:mypackage}/myPackages';
 // names of packages are converted to camelcase variable name 
 ```
 
@@ -51,16 +53,16 @@ And now, you can import something like this: `import classNames from 'myfile/cla
     "react-tabs-component": "1.1.3"
   },
   "system": {
-    // In bundle "react/addons" will be replaced by systemjs dependency.
-    "dependencies": ["react/addons"]
+    // In bundle "react" will be replaced by systemjs dependency.
+    "dependencies": ["react"]
   }
 }
 ```
 
 In example we can see how to change source of module for `require('react/addons')` from NPM dependencies 
-on to System Js `System.import('react/addons')`.
+on to System Js `System.import('react/addons')`. All call 'react/*' will be redirected to System.import
 
-**Tip:** Package universe:utilities-react from version 0.5.0 provides react from meteor package under system module "react/addons" and "react".
+**Tip:** Package universe:utilities-react from version 0.5.1 provides react from meteor package under system module "react/addons" and "react".
 It means that if you want use some npm package (that need "react/addons" or just "react") 
 Instead of manually register of modules for systemjs,
 you can use universe:utilities-react to provide system js modules.
