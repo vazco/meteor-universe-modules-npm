@@ -1,6 +1,6 @@
 Package.describe({
     name: 'universe:modules-npm',
-    version: '0.8.2',
+    version: '0.9.0',
     // Brief, one-line summary of the package.
     summary: 'Import of npm packages that works on client and server',
     // URL to the Git repository containing the source code for this package.
