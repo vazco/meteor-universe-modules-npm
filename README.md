@@ -59,8 +59,8 @@ And now, you can import something like this: `import classNames from 'myfile/cla
 }
 ```
 
-In example we can see how to change source of module for `require('react/addons')` from NPM dependencies 
-on to System Js `System.import('react/addons')`. All call 'react/*' will be redirected to System.import
+In example we can see how to change source of module for `require('react')` from NPM dependencies 
+on to System Js `System.import('react')`. All call to 'react/*' by require() will be redirected to System.import()
 
 **Tip:** Package universe:utilities-react from version 0.5.1 provides react from meteor package under system module "react/addons" and "react".
 It means that if you want use some npm package (that need "react/addons" or just "react") 
