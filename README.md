@@ -60,10 +60,10 @@ And now, you can import something like this: `import classNames from 'myfile/cla
 In example we can see how to change source of module for `require('react/addons')` from NPM dependencies 
 on to System Js `System.import('react/addons')`.
 
-*Tip: Package universe:utilities-react from version 0.5.0 provides react from meteor package under system module "react/addons" and "react".
+**Tip:** Package universe:utilities-react from version 0.5.0 provides react from meteor package under system module "react/addons" and "react".
 It means that if you want use some npm package (that need "react/addons" or just "react") 
 Instead of manually register of modules for systemjs,
-you can use universe:utilities-react to provide system js modules.*
+you can use universe:utilities-react to provide system js modules.
 
 #### browserify
 This package uses browserify for bundling.
