@@ -42,32 +42,55 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         });
     }
 
-    excludeFromBundle(browserify, systemDependencies) {
+    excludeFromBundle(browserify, systemDependencies, system) {
+        system._bundleIndexes = {};
+        var _reg = /(.*)\.[^.]+$/;
         if (Array.isArray(systemDependencies)) {
             systemDependencies.forEach(toImport => {
                 browserify.exclude(toImport);
             });
+            systemDependencies._deps = {};
+            browserify.on('dep', row => {
+                const moduleName = (row.file.split('/node_modules/')).pop();
+                if(!systemDependencies.some(toImport => {
+                    return moduleName.indexOf(toImport+'/') === 0;
+                })){
+                    Object.keys(row.deps).forEach(dep => {
+                        systemDependencies.some(toImport => {
+                            if(dep.indexOf(toImport+'/') === 0){
+                                systemDependencies._deps[dep] = true;
+                            }
+                        });
+                    });
+                    system._bundleIndexes[moduleName.replace(_reg, '$1')] = row.id;
+                }
+            });
+        } else {
+            browserify.on('dep', row => {
+                const moduleName = (row.file.split('/node_modules/')).pop();
+                system._bundleIndexes[moduleName.replace(_reg, '$1')] = row.id;
+            });
         }
     }
 
-    configureSystem (systemMap) {
-        if(typeof systemMap === 'object' && Object.keys(systemMap).length){
-            return `System.config({map: ${JSON.stringify(systemMap)}});`;
+    configureSystem (sysConfig) {
+        if(typeof sysConfig === 'object' && Object.keys(sysConfig).length){
+            return `System.config(${JSON.stringify(sysConfig)});`;
         }
         return '';
     }
 
     compileOneFile(file) {
         try {
-            const {source, config} = this.prepareSource(file);
-            const optionsForBrowserify = this.getBrowserifyOptions(file, config.browserify || {});
+            const {source, config, moduleId, modulesToExport} = this.prepareSource(file);
+            const optionsForBrowserify = this.getBrowserifyOptions(file, config.browserify);
             const browserify = Browserify([source], optionsForBrowserify);
             config.system = config.system || {};
-            this.excludeFromBundle(browserify, config.system.dependencies);
+            this.excludeFromBundle(browserify, config.system.dependencies, config.system);
             this.applyTransforms(browserify, optionsForBrowserify);
             const bundle = browserify.bundle();
             bundle.setEncoding('utf8');
-            let s = this.getCompileResult(bundle, config.system);
+            let s = this.getCompileResult(bundle, config.system, moduleId, modulesToExport);
             return {
                 compileResult: s,
                 referencedImportPaths: []
@@ -92,23 +115,32 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         browserify.transform(envify(envifyOptions));
     }
 
-    getCompileResult(bundle, {dependencies, map}) {
-        const depPromisesStr = Array.isArray(dependencies) ? dependencies.map(dep => {
-            return `System.import("${dep}")`;
-        }).join(',') : '';
+    getCompileResult(bundle, {dependencies, config, _bundleIndexes}, moduleId, modulesToExport = '') {
         const source = getString(bundle);
+        if(!Array.isArray(dependencies)){
+            dependencies = [];
+        }
+        // adding important system deps
+        if(dependencies._deps){
+            dependencies.push(...(Object.keys(dependencies._deps)));
+        }
+        const depPromisesStr = dependencies.map(dep => {
+            return `"${dep}"`;
+        }).join(',') || '';
         return (
 `
-Promise.all([${depPromisesStr}]).then(function(){
-${this.configureSystem(map)}
+var _uniBundleMapIndexes = ${JSON.stringify(_bundleIndexes)};
+${this.configureSystem(config)}
+System.registerDynamic("${moduleId}", [${depPromisesStr}], true, function(_uniSysRequire, _uniSysExports, _uniSysModule) {
+
 var require = function(){
     return (function e(def, n, r) {
         function bundleLoader(id, u) {
             if (!n[id]) {
                 if (!def[id]) {
                     var a = typeof require == "function" && require;
-                    if (!u && a)return a(id, !0);
-                    var systemModule = System.get(System.normalizeSync(id));
+                    if(!u && a)return a(id, !0);
+                    var systemModule = _uniSysRequire(id);
                     if(!systemModule){
                         var err = new Error("Cannot find module '" + id + "'");
                         err.code = "MODULE_NOT_FOUND";
@@ -117,7 +149,7 @@ var require = function(){
                     return systemModule;
                 }
                 var module = n[id] = {exports: {}};
-                def[id][0].call(module.exports, function miniRequire(name) {
+                def[id][0].call(module.exports, function bundleRequire(name) {
                     var n = def[id][1][name];
                     return bundleLoader(n ? n : name);
                 }, module, module.exports, e, def, n, r)
@@ -131,10 +163,13 @@ var require = function(){
 }
 /*Sources*/
 ${source}
-});`);
+});
+${modulesToExport}
+`);
     }
 
-    getBrowserifyOptions(file, userOptions = {}) {
+    getBrowserifyOptions(file, userOptions) {
+        userOptions = userOptions || {};
         let defaultOptions, transform;
         let transforms = {
             envify: {
@@ -145,6 +180,7 @@ ${source}
         defaultOptions = {
             basedir: this.getBasedir(file),
             debug: true,
+            ignoreMissing: true,
             transforms
         };
         _.defaults(userOptions, defaultOptions);
@@ -174,28 +210,72 @@ ${source}
         const source = new stream.PassThrough();
         const config = JSON.parse(stripJsonComments(file.getContentsAsString()));
         const moduleId = this.getModuleId(file);
-        let lines = '', standalone = '';
-        const prepareRegister = (modId, exp) => {
-            return (`
-System.registerDynamic("${modId}", [], true, function(_require, _exports, _module) {
-    ${exp}
-});
-            `);
-        };
+        let lines = '', modulesToExport = '';
         config.packages = config.packages || config.dependencies;
         if (config && config.packages) {
             _.each(config.packages, function (version, packageName) {
-                lines += `_exports.${camelCase(packageName)} = require('${packageName}');`;
-                standalone += prepareRegister(
-                    moduleId + '/' + packageName,
-                    `_module.exports = require('${packageName}');`
+                let camelCasePkgName = camelCase(packageName);
+                lines += (
+`   _uniSysModule.exports["${camelCasePkgName}"] = require('${packageName}');
+`
                 );
             });
+            lines += (
+`    _uniSysModule.exports._bundleRequire = function(pkgName){
+            var index = _uniBundleMapIndexes[pkgName];
+            if(index){
+                return require(index);
+            }
+            return require(pkgName);
+     };
+`
+            );
             installPackages(this.getBasedir(file), file, config.packages);
+            const loaderName = camelCase((file.getPackageName() || '').replace(':', '_') + '_' + file.getPathInPackage());
+            modulesToExport = (
+`
+System.config({
+    meta: {
+        '${moduleId}/*': {
+            format: 'register',
+            loader: 'UniverseDynamicLoader_${loaderName}'
         }
+    }
+});
 
-        source.end(prepareRegister(moduleId, lines) + standalone);
-        return {source, config};
+var UniverseDynamicLoader_${loaderName} = System.newModule({
+    locate: function locate(params) {
+        var name = params.name;
+        var metadata = params.metadata;
+        return new Promise(function(resolve, reject) {
+            var names = name.split('${moduleId}/');
+            metadata.submoduleName = names[1];
+            // check if we're in valid namespace
+            if (names[0] || !metadata.submoduleName) {
+                reject(new Error('[Universe Modules NPM]: trying to get exported values from invalid package: ' + name));
+                return;
+            }
+            resolve(name);
+        });
+    },
+    fetch: function fetch () {
+        // we don't need to fetch anything for this to work
+        return '';
+    },
+    instantiate: function instantiate (params) {
+        var metadata = params.metadata;
+        return System.import("${moduleId}").then(function(_um) {
+            return _um._bundleRequire(metadata.submoduleName);
+        });
+    }
+});
+// Register our loader
+System.set('UniverseDynamicLoader_${loaderName}', UniverseDynamicLoader_${loaderName});
+`
+            );
+        }
+        source.end(lines);
+        return {source, config, moduleId, modulesToExport};
     }
 
     getModuleId(file) {

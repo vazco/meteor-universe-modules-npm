@@ -1,6 +1,6 @@
 Package.describe({
     name: 'universe:modules-npm',
-    version: '0.8.1',
+    version: '0.8.2',
     // Brief, one-line summary of the package.
     summary: 'Import of npm packages that works on client and server',
     // URL to the Git repository containing the source code for this package.
@@ -32,5 +32,5 @@ Package.onUse(function (api) {
     // Use Meteor 1.2 build plugin
     api.use('isobuild:compiler-plugin@1.0.0');
 
-    api.use('react-runtime@0.13.3_7', {weak:true});
+    api.imply('promise');
 });
