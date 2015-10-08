@@ -29,6 +29,10 @@ import cn from '{username:mypackage}/packages/classnames';
 ```
 import classNames from '{username:mypackage}/packages/classnames';
 import typographicNumbers from '{username:mypackage}/packages/typographic-numbers';
+
+// All packages from file
+import {typographicNumbers, classnames} from '{username:mypackage}/packages';
+// names of packages are converted to camelcase variable name 
 ```
 
 #### In app
