@@ -1,7 +1,5 @@
 Browserify = Npm.require('browserify');
 envify = Npm.require('envify/custom');
-exorcistStream = Npm.require('exorcist-stream');
-strung = Npm.require('strung');
 stream = Npm.require('stream');
 stripJsonComments = Npm.require('strip-json-comments');
 npm = Npm.require('npm');
@@ -11,14 +9,14 @@ fs = Plugin.fs;
 path = Plugin.path;
 
 class UniverseModulesNPMBuilder extends CachingCompiler {
-    constructor () {
+    constructor() {
         super({
             compilerName: 'UniverseModulesNPMBuilder',
             defaultCacheSize: 1024 * 1024 * 10
         });
     }
 
-    getCacheKey (file) {
+    getCacheKey(file) {
         return [
             file.getSourceHash(),
             file.getDeclaredExports(),
@@ -27,46 +25,61 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         ]
     }
 
-    compileResultSize ({compileResult}) {
-        return compileResult.source.length + ((compileResult.sourceMap && compileResult.sourceMap.length) || 0);
+    compileResultSize({compileResult}) {
+        return compileResult.length;
     }
 
-    getBasedir (file) {
+    getBasedir(file) {
         let basedir = Plugin.convertToStandardPath(path.join(os.tmpdir(), 'universe-npm'));
         return Plugin.convertToOSPath(basedir + '/' + (file.getPackageName() || '' + file.getPathInPackage()).replace(/[^a-zA-Z0-9\-]/, '_'));
     }
 
-    addCompileResult (file, {compileResult}) {
+    addCompileResult(file, {compileResult}) {
         return file.addJavaScript({
             path: file.getPathInPackage() + '.js',
             sourcePath: file.getPathInPackage(),
-            data: compileResult.source,
-            sourceMap: compileResult.sourceMap
+            data: compileResult
         });
     }
 
-    compileOneFile (file) {
-        var browserify, bundle, compileResult, e;
-        try {
-            const {source, config} = this.prepareSource(file);
-            const optionsForBrowserify = this.getBrowserifyOptions(file, config.browserify || {});
-            browserify = Browserify([source], optionsForBrowserify);
-            this.applyTransforms(browserify, optionsForBrowserify);
-            bundle = this.getBundle(browserify, file);
-            compileResult = this.getCompileResult(bundle);
-            return {
-                compileResult: compileResult,
-                referencedImportPaths: []
-            };
-        } catch (_error) {
-            e = _error;
-            file.error({
-                message: e.message
+    excludeFromBundle(browserify, systemDependencies) {
+        if (Array.isArray(systemDependencies)) {
+            systemDependencies.forEach(toImport => {
+                browserify.exclude(toImport);
             });
         }
     }
 
-    applyTransforms (browserify, browserifyOptions) {
+    configureSystem (systemMap) {
+        if(typeof systemMap === 'object' && Object.keys(systemMap).length){
+            return `System.config({map: ${JSON.stringify(systemMap)}});`;
+        }
+        return '';
+    }
+
+    compileOneFile(file) {
+        try {
+            const {source, config} = this.prepareSource(file);
+            const optionsForBrowserify = this.getBrowserifyOptions(file, config.browserify || {});
+            const browserify = Browserify([source], optionsForBrowserify);
+            config.system = config.system || {};
+            this.excludeFromBundle(browserify, config.system.dependencies);
+            this.applyTransforms(browserify, optionsForBrowserify);
+            const bundle = browserify.bundle();
+            bundle.setEncoding('utf8');
+            let s = this.getCompileResult(bundle, config.system);
+            return {
+                compileResult: s,
+                referencedImportPaths: []
+            };
+        } catch (_error) {
+            file.error({
+                message: _error.message
+            });
+        }
+    }
+
+    applyTransforms(browserify, browserifyOptions) {
         var envifyOptions, transformName, transformOptions, transforms;
         envifyOptions = browserifyOptions.transforms.envify;
         delete browserifyOptions.transforms.envify;
@@ -79,25 +92,49 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         browserify.transform(envify(envifyOptions));
     }
 
-    getBundle (browserify, file) {
-        browserify.ignore('react');
-        var bundle = browserify.bundle();
-        bundle.setEncoding('utf8');
-        var sourceMapStream = strung();
-        var exorcisedBundle = bundle.pipe(exorcistStream(sourceMapStream, file.getDisplayPath()));
-        exorcisedBundle.originalBundle = bundle;
-        exorcisedBundle.sourceMapStream = sourceMapStream;
-        return exorcisedBundle;
+    getCompileResult(bundle, {dependencies, map}) {
+        const depPromisesStr = Array.isArray(dependencies) ? dependencies.map(dep => {
+            return `System.import("${dep}")`;
+        }).join(',') : '';
+        const source = getString(bundle);
+        return (
+`
+Promise.all([${depPromisesStr}]).then(function(){
+${this.configureSystem(map)}
+var require = function(){
+    return (function e(def, n, r) {
+        function bundleLoader(id, u) {
+            if (!n[id]) {
+                if (!def[id]) {
+                    var a = typeof require == "function" && require;
+                    if (!u && a)return a(id, !0);
+                    var systemModule = System.get(System.normalizeSync(id));
+                    if(!systemModule){
+                        var err = new Error("Cannot find module '" + id + "'");
+                        err.code = "MODULE_NOT_FOUND";
+                        throw err;
+                    }
+                    return systemModule;
+                }
+                var module = n[id] = {exports: {}};
+                def[id][0].call(module.exports, function miniRequire(name) {
+                    var n = def[id][1][name];
+                    return bundleLoader(n ? n : name);
+                }, module, module.exports, e, def, n, r)
+            }
+            return n[id].exports;
+        }
+
+        for (var o = 0; o < r.length; o++)bundleLoader(r[o]);
+        return bundleLoader;
+    });
+}
+/*Sources*/
+${source}
+});`);
     }
 
-    getCompileResult (bundle) {
-        return ({
-            source: getString(bundle),
-            sourceMap: bundle.sourceMapStream.string
-        });
-    }
-
-    getBrowserifyOptions (file, userOptions = {}) {
+    getBrowserifyOptions(file, userOptions = {}) {
         let defaultOptions, transform;
         let transforms = {
             envify: {
@@ -119,7 +156,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         return userOptions;
     }
 
-    getDebug () {
+    getDebug() {
         var debug, key, _i, _len, _ref1;
         debug = true;
         _ref1 = process.argv;
@@ -133,32 +170,35 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         return debug;
     }
 
-    prepareSource (file) {
+    prepareSource(file) {
         const source = new stream.PassThrough();
         const config = JSON.parse(stripJsonComments(file.getContentsAsString()));
         const moduleId = this.getModuleId(file);
         let lines = '', standalone = '';
         const prepareRegister = (modId, exp) => {
-            return `System.registerDynamic("${modId}", [], true, function(_require, _exports, _module) {${exp}});`;
+            return (`
+System.registerDynamic("${modId}", [], true, function(_require, _exports, _module) {
+    ${exp}
+});
+            `);
         };
-
-        if (config && config.dependencies) {
-            _.each(config.dependencies, function (version, packageName) {
+        config.packages = config.packages || config.dependencies;
+        if (config && config.packages) {
+            _.each(config.packages, function (version, packageName) {
                 lines += `_exports.${camelCase(packageName)} = require('${packageName}');`;
                 standalone += prepareRegister(
                     moduleId + '/' + packageName,
                     `_module.exports = require('${packageName}');`
                 );
             });
-            installPackages(this.getBasedir(file), file, config.dependencies);
+            installPackages(this.getBasedir(file), file, config.packages);
         }
 
-        var result = prepareRegister(moduleId, lines) + standalone;
-        source.end(result);
+        source.end(prepareRegister(moduleId, lines) + standalone);
         return {source, config};
     }
 
-    getModuleId (file) {
+    getModuleId(file) {
         // Relative path of file to the package or app root directory (always uses forward slashes)
         const filePath = file.getPathInPackage();
 
@@ -217,17 +257,15 @@ var installPackages = Meteor.wrapAsync(function (basedir, file, packageList, cb)
     });
 });
 
-var getString =  Meteor.wrapAsync(function(bundle, cb) {
-    var source;
-    source = strung();
-    source.on('finish', function() {
-        return cb(void 0, source.string);
+var getString = Meteor.wrapAsync(function (bundle, cb) {
+    var string = '';
+    bundle.on('data', function (data) {
+        return string += data;
     });
-    source.on('error', cb);
-    bundle.originalBundle.once('error', cb);
-    bundle.sourceMapStream.once('error', cb);
-    bundle.once('error', cb);
-    return bundle.pipe(source);
+    bundle.once('end', function () {
+        return cb(void 0, string);
+    });
+    return bundle.once('error', cb);
 });
 
 Plugin.registerCompiler({
