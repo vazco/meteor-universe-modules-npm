@@ -2,7 +2,7 @@ Package.describe({
     name: 'universe:modules-npm',
     version: '0.9.0',
     // Brief, one-line summary of the package.
-    summary: 'Import of npm packages that works on client and server',
+    summary: 'Import NPM packages on client & server, mapping dependencies on system js modules (useful for React)',
     // URL to the Git repository containing the source code for this package.
     git: 'https://github.com/vazco/meteor-universe-modules-npm',
     // By default, Meteor will default to using README.md for documentation.
