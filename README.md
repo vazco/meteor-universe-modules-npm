@@ -10,9 +10,9 @@ import cn from '{username:mypackage}/packages/classnames';
 ### How It works
 
 #### Into Package
-1. Create file <name>.npm.json, like myPackages.import-npm.json and add it to package.js by api.addFiles
+1. Create file <name>.npm.json, like myPacks.npm.json and add it to package.js by api.addFiles
 2. In package.js add dependency `universe:modules-npm`
-3. Add some packages under key **packages** (as a name:version pairs) to this file:
+3. Add some packages under key **packages** (as a name:version pairs) to file `myPacks.npm.json`:
 
 ```
 {
@@ -28,12 +28,12 @@ import cn from '{username:mypackage}/packages/classnames';
 4. You can import already added packages.
 
 ```
-import classNames from '{username:mypackage}/myPackages/classnames';
-import typographicNumbers from '{username:mypackage}/myPackages/typographic-numbers';
-import {globalizeDateLocalizer} from '{username:mypackage}/myPackages/react-widgets/lib/globalize-localizers';
+import classNames from '{username:mypackage}/myPacks/classnames';
+import typographicNumbers from '{username:mypackage}/myPacks/typographic-numbers';
+import {globalizeDateLocalizer} from '{username:mypackage}/myPacks/react-widgets/lib/globalize-localizers';
 
 // All packages from file
-import {typographicNumbers, classnames} from '{username:mypackage}/myPackages';
+import {typographicNumbers, classnames} from '{username:mypackage}/myPacks';
 // names of packages are converted to camelcase variable name 
 ```
 
@@ -53,7 +53,7 @@ And now, you can import something like this: `import classNames from 'myfile/cla
     "react-tabs-component": "1.1.3"
   },
   "system": {
-    // In bundle "react" will be replaced by systemjs dependency.
+    // In bundle "react" will be replaced by universe:modules dependency.
     "dependencies": ["react"]
   }
 }
@@ -83,9 +83,6 @@ You can pass options in the same file under key **browserify** to make changes o
   }
 }
 ```
-
-### Restrictions
-Because in bundling process, this package uses a browserify. Only browserifyable npm packages will work correctly. If you want use none browserifyable packages please use meteor npm and next,  export them as regular module. 
 
 ### Copyright and license
 
