@@ -9,7 +9,7 @@ import cn from '{username:mypackage}/packages/classnames';
 
 ### How It works
 
-#### Into Package
+#### In Meteor Package
 1. Create file <name>.npm.json, like myPacks.npm.json and add it to package.js by api.addFiles
 2. In package.js add dependency `universe:modules-npm`
 3. Add some packages under key **packages** (as a name:version pairs) to file `myPacks.npm.json`:
