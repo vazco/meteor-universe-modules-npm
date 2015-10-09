@@ -1,6 +1,6 @@
 <a href="http://unicms.io"><img src="http://unicms.io/banners/standalone.png" /></a>
 # Universe Modules NPM
-Extension for package universe:modules that adds possibility of bundling npm packages into universe modules. 
+Extension for package universe:modules that adds possibility of bundling npm packages into universe modules. Works on both sides (client/server). Provides mappings of dependencies npm <-> universe:modules without keeping of duplicates in npm bundle.
 
 And you can use it, just like that:
 ```
@@ -62,10 +62,10 @@ And now, you can import something like this: `import classNames from 'myfile/cla
 In example we can see how to change source of module for `require('react')` from NPM dependencies 
 on to System Js `System.import('react')`. All call to 'react/*' by require() will be redirected to System.import()
 
-**Tip:** Package universe:utilities-react from version 0.5.1 provides react from meteor package under system module "react/addons" and "react".
-It means that if you want use some npm package (that need "react/addons" or just "react") 
+**Tip:** Package universe:utilities-react from version 0.5.1 provides react from meteor package under system module "react" with dependencies "react/*" like "react/addons" .
+It means that if you want use some npm package (that need "react/addons", "react/lib/*" ...) 
 Instead of manually register of modules for systemjs,
-you can use universe:utilities-react to provide system js modules.
+you can use our package `universe:utilities-react` to provide react modules.
 
 #### browserify
 This package uses browserify for bundling.
