@@ -317,7 +317,7 @@ var installPackages = Meteor.wrapAsync(function (basedir, file, packageList, cb)
             version = version.version;
         }
         if (!version) {
-            throw new EvalError('Missing version of npm package: ' + packageName);
+            throw new Error('Missing version of npm package: ' + packageName);
         }
         return packageName + '@' + version;
     }).compact().value();
