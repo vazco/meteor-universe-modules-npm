@@ -231,7 +231,7 @@ ${modulesToExport}
 `
             );
             installPackages(this.getBasedir(file), file, config.packages);
-            const loaderName = camelCase((file.getPackageName() || '').replace(':', '_') + '_' + file.getPathInPackage());
+            const loaderName = (camelCase((file.getPackageName() || '') + '_' + file.getPathInPackage())).replace(/[:\/\\]/g, '_');
             modulesToExport = (
 `
 System.config({
