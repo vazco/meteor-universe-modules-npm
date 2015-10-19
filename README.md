@@ -67,6 +67,17 @@ It means that if you want use some npm package (that need "react/addons", "react
 Instead of manually register of modules for systemjs,
 you can use our package `universe:utilities-react` to provide react modules.
 
+#### Importing files inside npm package
+
+lets assume we have added package  ` "react-widgets": "2.8.2", ` in file `myPacks.npm.json`
+
+And path to interesting Us file inside npm package is: `./lib/globalize-localizers.js`
+
+Our import in es6 will be looks like:
+```
+import {globalizeDateLocalizer} from '/myPacks/react-widgets/lib/globalize-localizers';
+```
+
 #### browserify
 This package uses browserify for bundling.
 You can pass options in the same file under key **browserify** to make changes on this process
