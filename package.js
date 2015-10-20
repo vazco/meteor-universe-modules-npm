@@ -1,6 +1,6 @@
 Package.describe({
     name: 'universe:modules-npm',
-    version: '0.9.3',
+    version: '0.9.4',
     // Brief, one-line summary of the package.
     summary: 'Import NPM packages on client & server, mapping dependencies on system js modules (useful for React)',
     // URL to the Git repository containing the source code for this package.
