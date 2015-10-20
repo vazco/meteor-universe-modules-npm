@@ -31,7 +31,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
 
     getBasedir(file) {
         let basedir = Plugin.convertToStandardPath(path.join(os.tmpdir(), 'universe-npm'));
-        return Plugin.convertToOSPath(basedir + '/' + (file.getPackageName() || '' + file.getPathInPackage()).replace(/[^a-zA-Z0-9\-]/, '_'));
+        return Plugin.convertToOSPath(basedir + '/' + (file.getPackageName() || '' + file.getPathInPackage()).replace(/[^a-zA-Z0-9\-]/g, '_'));
     }
 
     addCompileResult(file, {compileResult}) {
