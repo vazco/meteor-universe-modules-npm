@@ -68,7 +68,8 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
             });
         } else {
             browserify.on('dep', row => {
-                const moduleName = (row.file.split('/node_modules/')).pop();
+                const file = Plugin.convertToStandardPath(row.file);
+                const moduleName = (file.split('/node_modules/')).pop();
                 system._bundleIndexes[moduleName.replace(_reg, '$1')] = row.id;
             });
         }
@@ -307,36 +308,63 @@ System.set('UniverseDynamicLoader_${loaderName}', UniverseDynamicLoader_${loader
 
 }
 
-var installPackages = Meteor.wrapAsync(function (basedir, file, packageList, cb) {
-
-
+var installPackages = function (basedir, file, packageList) {
     var packages = _.chain(packageList).map(function (version, packageName) {
-        if (fs.existsSync(basedir + '/node_modules/' + packageName)) {
+        if (fs.existsSync(path.resolve(basedir, 'node_modules', packageName))) {
+            if (typeof version === 'object') {
+                version = version.version;
+            }
+            if (!version) {
+                file.error({
+                    message: 'Missing version of npm package: ' + packageName,
+                    sourcePath: file.getPackageName() + '/' + file.getPathInPackage()
+                });
+                return;
+            }
+            var fullPkgName = packageName + '@' + version;
+            var targetPkgData;
+            try {
+              targetPkgData = fs.readFileSync(path.resolve(basedir, 'node_modules', packageName, 'package.json'), 'utf8');
+            } catch (err) {
+              return fullPkgName;
+            }
+            var targetPkg;
+            try {
+                  if (targetPkgData){
+                      targetPkg = JSON.parse(targetPkgData);
+                  }
+            } catch (err) {
+                return fullPkgName;
+            }
+            if (!targetPkg) {
+              return fullPkgName;
+            }
+
+
+            if (version !== targetPkg.version) {
+                // install because current found version seems outdated
+                // local install won't work with version specified
+                return fullPkgName;
+            }
+
             return;
-        }
-        if (typeof version === 'object') {
-            version = version.version;
-        }
-        if (!version) {
-            throw new Error('Missing version of npm package: ' + packageName);
         }
         return packageName + '@' + version;
     }).compact().value();
-
+console.log('\n', 'Orap', packages);
     if (!packages || !packages.length) {
-        return cb();
+        return;
     }
-    npm.load(function (err) {
-        if (err) {
-            file.error({
-                message: 'Couldn\'t read JSON data: ' + err.toString(),
-                sourcePath: file.getPackageName() + '/' + file.getPathInPackage()
-            });
-            return;
-        }
-        npm.commands.install(basedir, packages, cb);
-    });
-});
+    try {
+      ensureDepsInstalled(basedir, packages);
+    }  catch (err) {
+        console.error(err);
+        file.error({
+            message: 'Couldn\'t install NPM package: ' + err.toString(),
+            sourcePath: file.getPackageName() + '/' + file.getPathInPackage()
+        });
+    }
+};
 
 var getString = Meteor.wrapAsync(function (bundle, cb) {
     var string = '';
@@ -349,9 +377,18 @@ var getString = Meteor.wrapAsync(function (bundle, cb) {
     return bundle.once('error', cb);
 });
 
+var ensureDepsInstalled = Meteor.wrapAsync(function(basedir, packages, cb){
+  console.log('Installing packages:', packages.join());
+  npm.load(function (err) {
+      if (err) {
+          return cb(err);
+      }
+      npm.commands.install(basedir, packages, cb);
+  })
+});
+
 Plugin.registerCompiler({
     extensions: ['npm.json']
 }, function () {
     return new UniverseModulesNPMBuilder();
 });
-
