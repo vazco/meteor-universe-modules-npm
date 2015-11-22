@@ -34,7 +34,7 @@ import {globalizeDateLocalizer} from '{username:mypackage}/myPacks/react-widgets
 
 // All packages from file
 import {typographicNumbers, classnames} from '{username:mypackage}/myPacks';
-// names of packages are converted to camelcase variable name 
+// names of packages are converted to camelcase variable name
 ```
 
 #### In app
@@ -50,20 +50,20 @@ And now, you can import something like this: `import classNames from 'myfile/cla
 {
   "packages":{
     "classnames": "2.1.3",
-    "react-tabs-component": "1.1.3"
+    "rc-tabs": "5.5.0"
   },
   "system": {
     // In bundle "react" will be replaced by universe:modules dependency.
-    "dependencies": ["react"]
+    "dependencies": ["react", "react-dom"]
   }
 }
 ```
 
-In example we can see how to change source of module for `require('react')` from NPM dependencies 
+In example we can see how to change source of module for `require('react')` from NPM dependencies
 on to System Js `System.import('react')`. All call to 'react/*' by require() will be redirected to System.import()
 
 **Tip:** Package universe:utilities-react from version 0.5.1 provides react from meteor package under system module "react" with dependencies "react/*" like "react/addons" .
-It means that if you want use some npm package (that need "react/addons", "react/lib/*" ...) 
+It means that if you want use some npm package (that need "react/addons", "react/lib/*" ...)
 Instead of manually register of modules for systemjs,
 you can use our package `universe:utilities-react` to provide react modules.
 
@@ -98,7 +98,7 @@ You can pass options in the same file under key **browserify** to make changes o
 ### Copyright and license
 
 Code and documentation &copy; 2015 [Vazco.eu](http://vazco.eu)
-Released under the MIT license. 
+Released under the MIT license.
 
 This package is part of [Universe](http://unicms.io), a package ecosystem based on [Meteor platform](http://meteor.com) maintained by [Vazco](http://www.vazco.eu).
 It works as standalone Meteor package, but you can get much more features when using the whole system.   
