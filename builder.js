@@ -51,7 +51,8 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
             });
             systemDependencies._deps = {};
             browserify.on('dep', row => {
-                const moduleName = (row.file.split('/node_modules/')).pop();
+                const file = Plugin.convertToStandardPath(row.file);
+                const moduleName = (file.split('/node_modules/')).pop();
                 if(!systemDependencies.some(toImport => {
                     return moduleName.indexOf(toImport+'/') === 0;
                 })){

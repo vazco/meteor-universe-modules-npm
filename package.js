@@ -1,6 +1,6 @@
 Package.describe({
     name: 'universe:modules-npm',
-    version: '0.9.4',
+    version: '0.9.5',
     // Brief, one-line summary of the package.
     summary: 'Import NPM packages on client & server, mapping dependencies on system js modules (useful for React)',
     // URL to the Git repository containing the source code for this package.
@@ -12,14 +12,14 @@ Package.describe({
 
 Package.registerBuildPlugin({
     name: 'UniverseModulesNPMBuilder',
-    use: ['meteor', 'underscore@1.0.3', 'ecmascript@0.1.5', 'caching-compiler@1.0.0'],
+    use: ['meteor', 'underscore@1.0.4', 'ecmascript@0.1.6', 'caching-compiler@1.0.0'],
     sources: ['builder.js'],
     npmDependencies: {
-        'browserify': '11.1.0',
+        'browserify': '12.0.1',
         'envify': '3.4.0',
-        'strip-json-comments': '1.0.4',
-        'camelcase': '1.2.1',
-        'npm': '2.14.2'
+        'strip-json-comments': '2.0.0',
+        'camelcase': '2.0.1',
+        'npm': '3.4.1'
     }
 });
 
