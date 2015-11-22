@@ -26,7 +26,7 @@ Package.registerBuildPlugin({
 Package.onUse(function (api) {
     api.versionsFrom('1.2.0.2');
     api.use([
-        'universe:modules@0.5.1'
+        'universe:modules@0.6.1'
     ]);
 
     // Use Meteor 1.2 build plugin
