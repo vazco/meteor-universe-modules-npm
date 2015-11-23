@@ -6,7 +6,6 @@ const npm = Npm.require('npm');
 const os = Npm.require('os');
 const camelCase = Npm.require('camelcase');
 const {fs, path} = Plugin;
-
 class UniverseModulesNPMBuilder extends CachingCompiler {
     constructor() {
         super({
@@ -78,6 +77,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
 
     compileOneFile(file) {
         const sourcePath = file.getPackageName() + '/' + file.getPathInPackage();
+        Plugin.nudge && Plugin.nudge();
         logPoint('Universe NPM: '+sourcePath);
         try {
             const {source, config, moduleId, modulesToExport} = this.prepareSource(file);
@@ -339,6 +339,7 @@ var installPackages = function (basedir, file, packageList) {
     }
     try {
         deleteFolderRecursive(path.resolve(basedir, 'node_modules'));
+        savePackageJsnFile(file.getPackageName() + '/' + file.getPathInPackage(), basedir);
         ensureDepsInstalled(basedir, packages);
     } catch (err) {
         file.error({
@@ -381,6 +382,19 @@ var deleteFolderRecursive = function (path) {
         });
         fs.rmdirSync(path);
     }
+};
+
+var savePackageJsnFile = (pgName, basedir) => {
+    const data = (
+`{
+  "name": "${pgName.replace(/[^a-z]/g, '-')}",
+  "version": "9.9.9",
+  "description": "This is stamp only",
+  "license": "UNLICENSED",
+  "private": true
+}`
+    );
+    fs.writeFile(path.resolve(basedir, 'package.json'), data, 'utf8', ()=>{});
 };
 
 Plugin.registerCompiler({
