@@ -1,6 +1,7 @@
+var UniverseModulesRelease = '0.6.3'; // eslint-disable-line no-var
 Package.describe({
     name: 'universe:modules-npm',
-    version: '0.9.6',
+    version: UniverseModulesRelease,
     // Brief, one-line summary of the package.
     summary: 'Import NPM packages on client & server, mapping dependencies on system js modules (useful for React)',
     // URL to the Git repository containing the source code for this package.
@@ -16,21 +17,20 @@ Package.registerBuildPlugin({
     sources: ['builder.js'],
     npmDependencies: {
         'browserify': '12.0.1',
-        'envify': '3.4.0',
+        //'envify': '3.4.0',
         'strip-json-comments': '2.0.0',
         'camelcase': '2.0.1',
         'npm': '3.4.1'
     }
 });
 
-Package.onUse(function (api) {
-    api.versionsFrom('1.2.0.2');
+Package.onUse(function(api) {
+    api.versionsFrom('1.2.1');
     api.use([
-        'universe:modules@0.6.1'
+        'universe:modules@' + UniverseModulesRelease,
+        'isobuild:compiler-plugin@1.0.0'
     ]);
 
-    // Use Meteor 1.2 build plugin
-    api.use('isobuild:compiler-plugin@1.0.0');
-
+    api.imply('universe:modules@' + UniverseModulesRelease);
     api.imply('promise');
 });
