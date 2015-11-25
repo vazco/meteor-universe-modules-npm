@@ -14,8 +14,8 @@ const {fs, path} = Plugin;
  */
 function logMsg(...args) {
     const str = `${Date.now()} => ${JSON.stringify(args, null, '\t')}\r\n`;
-    console.log(str); // if its avaliable, debug it here
-    process.stdout.write(str); //not sure exactly where this goes
+    console.log(str); // if its available, debug it here
+    process.stdout.write(str); //not sure exactly where this goes,, to the console? so if above line needed?
     /**
      * When debugging compiler code, it can get pretty hairy. You don't always have access to the same error reporting
      * functionality, and alot of the time STDOUT/console.log/etc are redirected to somwhere you can't see. I've also found
@@ -46,9 +46,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
     }
 
     getCacheKey(file) {
-        const cacheKey = file.getSourceHash() + file.getPathInPackage() + JSON.stringify(file.getFileOptions());
-        logMsg(cacheKey);
-        return cacheKey;
+        return file.getSourceHash() + file.getPathInPackage() + JSON.stringify(file.getFileOptions());
     }
 
     compileResultSize(compileResult) {
@@ -123,7 +121,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         Plugin.nudge && Plugin.nudge();
         logMsg('Universe NPM: ' + sourcePath);
         try {
-            const {source, config, moduleId, modulesToExport} = this.prepareSource(file);
+            const {source, config, moduleId} = this.prepareSource(file);
             const optionsForBrowserify = this.getBrowserifyOptions(file, config.browserify);
             const browserify = Browserify([source], optionsForBrowserify); // eslint-disable-line new-cap
             config.system = config.system || {};
@@ -131,7 +129,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
             this.applyTransforms(browserify, optionsForBrowserify);
             const bundle = browserify.bundle();
             bundle.setEncoding('utf8');
-            return this.getCompileResult(bundle, config.system, moduleId, modulesToExport);
+            return this.getCompileResult(bundle, config.system, moduleId);
         } catch (_error) {
             logMsg('error in compileOnFile ' + JSON.stringify({
                 message: _error.message,
@@ -182,18 +180,13 @@ __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(
 
     getBrowserifyOptions(file, userOptions) {
         userOptions = userOptions || {};
-        let defaultOptions, transform;
-        /*let transforms = {        this is really just the same as another defaultOptions,, why have two?
-            envify: {
-                NODE_ENV: this.getDebug() ? 'development' : 'production',
-                _: 'purge'
-            }
-        };*/
-        defaultOptions = {
+        const defaultOptions = {
             basedir: Plugin.convertToOSPath(this.getBasedir(file)),
             debug: true,
             ignoreMissing: true,
-            transforms
+            transforms: {
+                //other default transforms would go here
+            }
         };
         _.defaults(userOptions, defaultOptions);
         /**
@@ -238,20 +231,18 @@ __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(
             _.each(config.packages, (version, packageName) => {
                 const camelCasePkgName = camelCase(packageName);
                 lines += (
-                    `
-                       _uniSysModule.exports["${camelCasePkgName}"] = require('${packageName}');
+                    `    _uniSysModule.exports["${camelCasePkgName}"] = require('${packageName}');
                     `
                 );
             });
             lines += (
-                `
-                   _uniSysModule.exports._bundleRequire = require;
+                `     _uniSysModule.exports._bundleRequire = require;
                 `
             );
             installPackages(this.getBasedir(file), file, config.packages);
         }
         source.end(lines);
-        return {source, config, moduleId, modulesToExport};
+        return {source, config, moduleId};
     }
 
     /**
@@ -297,7 +288,7 @@ const ensureDepsInstalled = Meteor.wrapAsync((basedir, packages, cb) => {
 function installPackages(basedir, file, packageList) {
     const packages = [];
     var installedCount = 0;
-    _(packageList).map((version, packageName) => {
+    _.map(packageList, (version, packageName) => {
         if (typeof version === 'object') {
             version = version.version;
         }
@@ -341,8 +332,40 @@ function installPackages(basedir, file, packageList) {
         logMsg(...err);
         file.error({
             message: 'Couldn\'t install NPM package: ' + err.toString(),
-            sourcePath: file.getPackageName() + '/' + file.getPathInPackage()
+            sourcePath: (file.getPackageName() || '') + '/' + file.getPathInPackage()
         });
+    }
+}
+
+function deleteFolderRecursive(pathToDelete) { // eslint was giving me errors saying "path" was already defined within scope
+    if (fs.existsSync(pathToDelete)) {
+        fs.readdirSync(pathToDelete).forEach((file) => {
+            const curPath = pathToDelete + '/' + file;
+            if (fs.lstatSync(curPath).isDirectory()) {
+                deleteFolderRecursive(curPath);
+            } else {
+                fs.unlinkSync(curPath);
+            }
+        });
+        fs.rmdirSync(pathToDelete);
+    }
+}
+
+function savePackageJsnFile(pgName, basedir) {
+    const data = (
+        `{
+  "name": "${pgName.replace(/[^a-z]/g, '-')}",
+  "version": "9.9.9",
+  "description": "This is stamp only",
+  "license": "UNLICENSED",
+  "private": true
+}`
+    );
+
+    if (!fs.existsSync(basedir)) {
+        fs.mkdir(basedir, e => !e && fs.writeFile(path.resolve(basedir, 'package.json'), data, 'utf8', () => {}));
+    } else {
+        fs.writeFile(path.resolve(basedir, 'package.json'), data, 'utf8', () => {});
     }
 }
 
