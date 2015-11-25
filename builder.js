@@ -37,7 +37,6 @@ const getString = Meteor.wrapAsync((bundle, cb) => {
     return bundle.once('error', cb);
 });
 
-
 class UniverseModulesNPMBuilder extends CachingCompiler {
     constructor() {
         super({
@@ -63,7 +62,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
      * @returns {string} the full qualified path containing given  file
      */
     getBasedir(file) {
-        let basedir = path.resolve(Plugin.convertToStandardPath(os.tmpdir()), 'universe-npm');
+        const basedir = path.resolve(Plugin.convertToStandardPath(os.tmpdir()), 'universe-npm');
         return path.resolve(basedir, (file.getPackageName() || '' + file.getPathInPackage()).replace(/[^a-zA-Z0-9\-]/g, '_'));
     }
 
@@ -122,11 +121,11 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
     compileOneFile(file) {
         const sourcePath = file.getPackageName() + '/' + file.getPathInPackage();
         Plugin.nudge && Plugin.nudge();
-        logPoint('Universe NPM: '+sourcePath);
+        logMsg('Universe NPM: ' + sourcePath);
         try {
             const {source, config, moduleId, modulesToExport} = this.prepareSource(file);
             const optionsForBrowserify = this.getBrowserifyOptions(file, config.browserify);
-            const browserify = Browserify([source], optionsForBrowserify);
+            const browserify = Browserify([source], optionsForBrowserify); // eslint-disable-line new-cap
             config.system = config.system || {};
             this.excludeFromBundle(browserify, config.system.dependencies, config.system);
             this.applyTransforms(browserify, optionsForBrowserify);
@@ -151,16 +150,13 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
      * @param {object} browserifyOptions - map in the format of { ..., transformName: { ...transformOptions... }, ... }
      */
     applyTransforms(browserify, browserifyOptions) {
-        var envifyOptions, transformName, transformOptions, transforms;
-        envifyOptions = browserifyOptions.transforms.envify; // and if there is no transforms set on browserifyOptions ---> kaboom
-        delete browserifyOptions.transforms.envify;
-        transforms = browserifyOptions.transforms;
-        for (transformName in transforms) {
-            if (!_.has(transforms, transformName)) continue;
-            transformOptions = transforms[transformName];
+        //var envifyOptions, transformName, transformOptions, transforms;
+        //envifyOptions = browserifyOptions.transforms.envify; // and if there is no transforms set on browserifyOptions ---> kaboom
+        //delete browserifyOptions.transforms.envify;
+        //transforms = browserifyOptions.transforms;
+        _.forEach(browserifyOptions.transforms, (transformOptions, transformName) => {
             browserify.transform(transformName, transformOptions);
-        }
-        browserify.transform(envify(envifyOptions));
+        });
     }
 
     getCompileResult(bundle, {dependencies, config, _bundleIndexes}, moduleId) {
@@ -173,7 +169,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
             dependencies.concat(Object.keys(dependencies._deps)); // no need for ...spread here, looks akward infront of a wrapped expression
         }
         const depPromisesStr = dependencies.map(dep =>
-                `"${System.normalizeSync(dep)}"`
+            `"${System.normalizeSync(dep)}"`
         ).join(',') || '';
         return (
 `
@@ -187,12 +183,12 @@ __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(
     getBrowserifyOptions(file, userOptions) {
         userOptions = userOptions || {};
         let defaultOptions, transform;
-        let transforms = {
+        /*let transforms = {        this is really just the same as another defaultOptions,, why have two?
             envify: {
                 NODE_ENV: this.getDebug() ? 'development' : 'production',
                 _: 'purge'
             }
-        };
+        };*/
         defaultOptions = {
             basedir: Plugin.convertToOSPath(this.getBasedir(file)),
             debug: true,
@@ -200,37 +196,15 @@ __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(
             transforms
         };
         _.defaults(userOptions, defaultOptions);
-        /*
-         * I have to assume your whatever.npm.json / your tests contained envify as a browserify transform, because if you
-         * don't include it, it breaks everything. It gave me quite the headache
+        /**
+         * forcing envify defeats the purpose of _.defaults, just use _.extend then
          *
-         * Logical Breakdown
-         * ----------------------
-         * supposed userOptions == {}
-         *
-         * then as defined:
-         * transforms = {
-         *     envify: {
-         *         NODE_ENV: this.getDebug() ? 'development' : 'production',
-         *         _: 'purge'
-         *     }
-         * }
-         *
-         * then that gets nested inside defaultOptions:
-         * dafaultOptions.transforms = transforms
-         *
-         * if ((transform = userOptions.transforms) != null) {
-         *
-         * *   this breaks down into
-         * *
-         * *   trasform = userOptions.transforms;
-         * *   if (transform != null) { // basically if (the user did supply transforms)
-         * *
-         * *   if (transform.envify == null) {
-         *       transform.envify = defaultOptions.transforms.envify;
-         *  }
-        }
-        */
+         * AFTER, looking trough the code that used to be here, I figured out that it
+         * would have the same effect as _.defaults, its just unnecessary because we
+         * already use _.defaults. The only difference would be that if user passed
+         * defaultOptions = {..., transforms: { envify:null }, ...}
+         * your code would overwrite it and force user to use envify because it checks null
+         */
         return userOptions;
     }
 
@@ -261,15 +235,17 @@ __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(
         let lines = '';
         config.packages = config.packages || config.dependencies;
         if (config && config.packages) {
-            _.each(config.packages, function (version, packageName) {
-                let camelCasePkgName = camelCase(packageName);
+            _.each(config.packages, (version, packageName) => {
+                const camelCasePkgName = camelCase(packageName);
                 lines += (
-                    `   _uniSysModule.exports["${camelCasePkgName}"] = require('${packageName}');
-`
+                    `
+                       _uniSysModule.exports["${camelCasePkgName}"] = require('${packageName}');
+                    `
                 );
             });
             lines += (
-                `   _uniSysModule.exports._bundleRequire = require;
+                `
+                   _uniSysModule.exports._bundleRequire = require;
                 `
             );
             installPackages(this.getBasedir(file), file, config.packages);
@@ -307,6 +283,7 @@ __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(
         }
         return moduleId;
     }
+}
 
 const ensureDepsInstalled = Meteor.wrapAsync((basedir, packages, cb) => {
     logMsg('Installing npm packages: ' + packages.join(', ') + '\r\n');
@@ -316,17 +293,20 @@ const ensureDepsInstalled = Meteor.wrapAsync((basedir, packages, cb) => {
     });
 });
 
-}
 
-var installPackages = function (basedir, file, packageList) {
-    var packages = [];
+function installPackages(basedir, file, packageList) {
+    const packages = [];
     var installedCount = 0;
-    _(packageList).map(function (version, packageName) {
+    _(packageList).map((version, packageName) => {
         if (typeof version === 'object') {
             version = version.version;
         }
         if (!version) {
             file.error({
+                message: 'Missing version of npm package: ' + packageName,
+                sourcePath: file.getPackageName() + '/' + file.getPathInPackage()
+            });
+            logMsg({
                 message: 'Missing version of npm package: ' + packageName,
                 sourcePath: file.getPackageName() + '/' + file.getPathInPackage()
             });
@@ -336,16 +316,15 @@ var installPackages = function (basedir, file, packageList) {
         const pgPath = path.resolve(basedir, 'node_modules', packageName);
         if (fs.existsSync(pgPath)) {
             try {
-                let targetPkgData = fs.readFileSync(path.resolve(pgPath, 'package.json'), 'utf8');
-
+                const targetPkgData = fs.readFileSync(path.resolve(pgPath, 'package.json'), 'utf8');
                 if (targetPkgData) {
-                    let targetPkg = JSON.parse(targetPkgData);
+                    const targetPkg = JSON.parse(targetPkgData);
                     if (targetPkg && version === targetPkg.version) {
-                        installedCount ++;
+                        installedCount++;
                     }
                 }
             } catch (err) {
-                console.warn(err);
+                logMsg(...err);
             }
         }
         packages.push(fullPkgName);
@@ -359,6 +338,7 @@ var installPackages = function (basedir, file, packageList) {
         savePackageJsnFile(file.getPackageName() + '/' + file.getPathInPackage(), basedir);
         ensureDepsInstalled(basedir, packages);
     } catch (err) {
+        logMsg(...err);
         file.error({
             message: 'Couldn\'t install NPM package: ' + err.toString(),
             sourcePath: file.getPackageName() + '/' + file.getPathInPackage()
