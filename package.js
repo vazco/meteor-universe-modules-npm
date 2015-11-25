@@ -1,3 +1,4 @@
+var UNIVERSE_MODULES_VERSION = '0.6.4';
 Package.describe({
     name: 'universe:modules-npm',
     version: '0.9.7',
@@ -12,7 +13,7 @@ Package.describe({
 
 Package.registerBuildPlugin({
     name: 'UniverseModulesNPMBuilder',
-    use: ['meteor', 'underscore@1.0.4', 'ecmascript@0.1.6', 'caching-compiler@1.0.0'],
+    use: ['meteor', 'underscore@1.0.4', 'ecmascript@0.1.6', 'caching-compiler@1.0.0', 'universe:modules@'+UNIVERSE_MODULES_VERSION],
     sources: ['builder.js'],
     npmDependencies: {
         'browserify': '12.0.1',
@@ -26,11 +27,18 @@ Package.registerBuildPlugin({
 Package.onUse(function (api) {
     api.versionsFrom('1.2.0.2');
     api.use([
-        'universe:modules@0.6.4'
+        'universe:modules@'+UNIVERSE_MODULES_VERSION,
+        'isobuild:compiler-plugin@1.0.0',
+        'ecmascript@0.1.6',
+        'promise'
     ]);
 
-    // Use Meteor 1.2 build plugin
-    api.use('isobuild:compiler-plugin@1.0.0');
+    api.use([
+        'universe:utilities-react@0.5.4',
+        'react-runtime'
+    ], ['server', 'client'], {weak: true});
 
+    api.addFiles('system/UniverseNPMDynamicLoader.js');
+    api.export('__UniverseNPMDynamicLoader');
     api.imply('promise');
 });

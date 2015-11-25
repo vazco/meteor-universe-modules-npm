@@ -6,6 +6,7 @@ const npm = Npm.require('npm');
 const os = Npm.require('os');
 const camelCase = Npm.require('camelcase');
 const {fs, path} = Plugin;
+
 class UniverseModulesNPMBuilder extends CachingCompiler {
     constructor() {
         super({
@@ -68,19 +69,12 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         }
     }
 
-    configureSystem(sysConfig) {
-        if (typeof sysConfig === 'object' && Object.keys(sysConfig).length) {
-            return `System.config(${JSON.stringify(sysConfig)});`;
-        }
-        return '';
-    }
-
     compileOneFile(file) {
         const sourcePath = (file.getPackageName() || '') + '/' + file.getPathInPackage();
         Plugin.nudge && Plugin.nudge();
         logPoint('Universe NPM: '+sourcePath);
         try {
-            const {source, config, moduleId, modulesToExport} = this.prepareSource(file);
+            const {source, config, moduleId} = this.prepareSource(file);
             const optionsForBrowserify = this.getBrowserifyOptions(file, config.browserify);
             const browserify = Browserify([source], optionsForBrowserify);
             config.system = config.system || {};
@@ -88,7 +82,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
             this.applyTransforms(browserify, optionsForBrowserify);
             const bundle = browserify.bundle();
             bundle.setEncoding('utf8');
-            return this.getCompileResult(bundle, config.system, moduleId, modulesToExport);
+            return this.getCompileResult(bundle, config.system, moduleId);
         } catch (_error) {
             file.error({
                 message: _error.message,
@@ -110,7 +104,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         browserify.transform(envify(envifyOptions));
     }
 
-    getCompileResult(bundle, {dependencies, config, _bundleIndexes}, moduleId, modulesToExport = '') {
+    getCompileResult(bundle, {dependencies, config, _bundleIndexes}, moduleId) {
         const source = getString(bundle);
         if (!Array.isArray(dependencies)) {
             dependencies = [];
@@ -120,47 +114,12 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
             dependencies.push(...(Object.keys(dependencies._deps)));
         }
         const depPromisesStr = dependencies.map(dep => {
-                return `"${dep}"`;
+                return `"${System.normalizeSync(dep)}"`;
             }).join(',') || '';
         return (
-            `
-var _uniBundleMapIndexes = ${JSON.stringify(_bundleIndexes)};
-${this.configureSystem(config)}
-System.registerDynamic("${moduleId}", [${depPromisesStr}], true, function(_uniSysRequire, _uniSysExports, _uniSysModule) {
-
-var require = function(){
-    return (function e(def, n, r) {
-        function bundleLoader(id, u) {
-            if (!n[id]) {
-                if (!def[id]) {
-                    var a = typeof require == "function" && require;
-                    if(!u && a)return a(id, !0);
-                    var systemModule = _uniSysRequire(id);
-                    if(!systemModule){
-                        var err = new Error("Cannot find module '" + id + "'");
-                        err.code = "MODULE_NOT_FOUND";
-                        throw err;
-                    }
-                    return systemModule;
-                }
-                var module = n[id] = {exports: {}};
-                def[id][0].call(module.exports, function bundleRequire(name) {
-                    var n = def[id][1][name];
-                    return bundleLoader(n ? n : name);
-                }, module, module.exports, e, def, n, r)
-            }
-            return n[id].exports;
-        }
-
-        for (var o = 0; o < r.length; o++)bundleLoader(r[o]);
-        return bundleLoader;
-    });
-}
-/*Sources*/
-${source}
-});
-${modulesToExport}
-`);
+` __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(config)}, (function(require, _uniSysExports, _uniSysModule) {
+${source}}), ${JSON.stringify(_bundleIndexes)});`
+        );
     }
 
     getBrowserifyOptions(file, userOptions) {
@@ -205,7 +164,7 @@ ${modulesToExport}
         const source = new stream.PassThrough();
         const config = JSON.parse(stripJsonComments(file.getContentsAsString()));
         const moduleId = this.getModuleId(file);
-        let lines = '', modulesToExport = '';
+        let lines = '';
         config.packages = config.packages || config.dependencies;
         if (config && config.packages) {
             _.each(config.packages, function (version, packageName) {
@@ -216,61 +175,13 @@ ${modulesToExport}
                 );
             });
             lines += (
-                `    _uniSysModule.exports._bundleRequire = function(pkgName){
-            var index = _uniBundleMapIndexes[pkgName];
-            if(index){
-                return require(index);
-            }
-            return require(pkgName);
-     };
-`
+                `   _uniSysModule.exports._bundleRequire = require;
+                `
             );
             installPackages(this.getBasedir(file), file, config.packages);
-            const loaderName = (camelCase((file.getPackageName() || '') + '_' + file.getPathInPackage())).replace(/[:\/\\]/g, '_');
-            modulesToExport = (
-                `
-System.config({
-    meta: {
-        '${moduleId}/*': {
-            format: 'register',
-            loader: 'UniverseDynamicLoader_${loaderName}'
-        }
-    }
-});
-
-var UniverseDynamicLoader_${loaderName} = System.newModule({
-    locate: function locate(params) {
-        var name = params.name;
-        var metadata = params.metadata;
-        return new Promise(function(resolve, reject) {
-            var names = name.split('${moduleId}/');
-            metadata.submoduleName = names[1];
-            // check if we're in valid namespace
-            if (names[0] || !metadata.submoduleName) {
-                reject(new Error('[Universe Modules NPM]: trying to get exported values from invalid package: ' + name));
-                return;
-            }
-            resolve(name);
-        });
-    },
-    fetch: function fetch () {
-        // we don't need to fetch anything for this to work
-        return '';
-    },
-    instantiate: function instantiate (params) {
-        var metadata = params.metadata;
-        return System.import("${moduleId}").then(function(_um) {
-            return _um._bundleRequire(metadata.submoduleName);
-        });
-    }
-});
-// Register our loader
-System.set('UniverseDynamicLoader_${loaderName}', UniverseDynamicLoader_${loaderName});
-`
-            );
         }
         source.end(lines);
-        return {source, config, moduleId, modulesToExport};
+        return {source, config, moduleId};
     }
 
     getModuleId(file) {
@@ -349,7 +260,7 @@ var installPackages = function (basedir, file, packageList) {
     }
 };
 
-var logPoint = (...args) => process.stdout.write('=> '+args.join(' ')+ '\r\n');
+var logPoint = (...args) => process.stdout.write('\r\n=> '+args.join(' ')+ '\r\n');
 
 var getString = Meteor.wrapAsync(function (bundle, cb) {
     var string = '';
@@ -394,7 +305,12 @@ var savePackageJsnFile = (pgName, basedir) => {
   "private": true
 }`
     );
-    fs.writeFile(path.resolve(basedir, 'package.json'), data, 'utf8', ()=>{});
+
+    if (!fs.existsSync(basedir)){
+        fs.mkdir(basedir, e => !e && fs.writeFile(path.resolve(basedir, 'package.json'), data, 'utf8', () => {}));
+    } else {
+        fs.writeFile(path.resolve(basedir, 'package.json'), data, 'utf8', () => {});
+    }
 };
 
 Plugin.registerCompiler({
