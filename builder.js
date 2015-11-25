@@ -76,7 +76,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
     }
 
     compileOneFile(file) {
-        const sourcePath = file.getPackageName() + '/' + file.getPathInPackage();
+        const sourcePath = (file.getPackageName() || '') + '/' + file.getPathInPackage();
         Plugin.nudge && Plugin.nudge();
         logPoint('Universe NPM: '+sourcePath);
         try {
@@ -311,7 +311,7 @@ var installPackages = function (basedir, file, packageList) {
         if (!version) {
             file.error({
                 message: 'Missing version of npm package: ' + packageName,
-                sourcePath: file.getPackageName() + '/' + file.getPathInPackage()
+                sourcePath: (file.getPackageName() || '') + '/' + file.getPathInPackage()
             });
             return;
         }
@@ -339,12 +339,12 @@ var installPackages = function (basedir, file, packageList) {
     }
     try {
         deleteFolderRecursive(path.resolve(basedir, 'node_modules'));
-        savePackageJsnFile(file.getPackageName() + '/' + file.getPathInPackage(), basedir);
+        savePackageJsnFile((file.getPackageName() || '') + '/' + file.getPathInPackage(), basedir);
         ensureDepsInstalled(basedir, packages);
     } catch (err) {
         file.error({
             message: 'Couldn\'t install NPM package: ' + err.toString(),
-            sourcePath: file.getPackageName() + '/' + file.getPathInPackage()
+            sourcePath: (file.getPackageName() || '') + '/' + file.getPathInPackage()
         });
     }
 };
