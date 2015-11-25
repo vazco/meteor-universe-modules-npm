@@ -35,10 +35,8 @@ __UniverseNPMDynamicLoader = function(moduleId, deps, sysCfg, fn, indexes){
         },
         instantiate: function instantiate (params) {
             var metadata = params.metadata;
-            console.log('metadata2', metadata);
-            return System.import(moduleId).then(function(_um) {
-                console.log(_um);
-                return _um._bundleRequire(indexes[metadata.submoduleName] || metadata.submoduleName);
+            return System.import(moduleId).then(function({_bundleRequire}) {
+                return _bundleRequire(indexes[metadata.submoduleName] || metadata.submoduleName);
             });
         }
     }));
