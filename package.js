@@ -41,7 +41,7 @@ Package.onUse(function(api) {
 
     api.use([
         'universe:utilities-react@0.5.6',
-        'react-runtime'
+        'react-runtime@0.14.1||0.13.3'
     ], ['server', 'client'], {weak: true});
 
 
