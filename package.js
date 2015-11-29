@@ -24,6 +24,7 @@ Package.registerBuildPlugin({
     npmDependencies: {
         'browserify': '12.0.1',
         'strip-json-comments': '2.0.0',
+        'exorcist': '0.4.0',
         'npm': '3.4.1'
     }
 });

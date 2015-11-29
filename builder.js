@@ -32,22 +32,11 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
     }
 
     getCacheKey(file) {
-        return file.getSourceHash() + file.getPathInPackage() + JSON.stringify(file.getFileOptions());
+        return file.getSourceHash() + getProjectSourcePath(file) + JSON.stringify(file.getFileOptions());
     }
 
     compileResultSize(compileResult) {
         return compileResult.length * 2;
-    }
-
-    /**
-     * Gets the base directory for a given file based on file location
-     *
-     * @param {Object} file - handle for file that is to be compiled
-     * @returns {string} the full qualified path containing given  file
-     */
-    getBasedir(file) {
-        const basedir = path.resolve(Plugin.convertToStandardPath(os.tmpdir()), 'universe-npm');
-        return path.resolve(basedir, getProjectSourcePath(file).replace(/[^a-zA-Z0-9\-]/g, '_'));
     }
 
     addCompileResult(file, compileResult) {
@@ -150,7 +139,7 @@ __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(
     getBrowserifyOptions(file, userOptions) {
         userOptions = userOptions || {};
         const defaultOptions = {
-            basedir: Plugin.convertToOSPath(this.getBasedir(file)),
+            basedir: Plugin.convertToOSPath(getBasedir(file)),
             debug: true,
             ignoreMissing: true,
             transforms: {
@@ -191,7 +180,7 @@ __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(
             lines += (
                 `    _uniSysModule.exports._bundleRequire = require;` + '\n'
             );
-            installPackages(this.getBasedir(file), file, config.packages);
+            installPackages(getBasedir(file), file, config.packages);
         }
         source.end(lines);
         return {source, config, moduleId};
@@ -226,6 +215,17 @@ __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(
         }
         return moduleId;
     }
+}
+
+/**
+ * Gets the base directory for a given file based on file location
+ *
+ * @param {Object} file - handle for file that is to be compiled
+ * @returns {string} the full qualified path containing given  file
+ */
+function getBasedir(file) {
+    const basedir = path.resolve(Plugin.convertToStandardPath(os.tmpdir()), 'universe-npm');
+    return path.resolve(basedir, getProjectSourcePath(file).replace(/[^a-zA-Z0-9\-]/g, '_'));
 }
 
 const ensureDepsInstalled = Meteor.wrapAsync((basedir, packages, cb) => {
