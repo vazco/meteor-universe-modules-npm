@@ -1,3 +1,4 @@
+
 __UniverseNPMDynamicLoader = function(moduleId, deps, sysCfg, fn, indexes){
     System.registerDynamic(moduleId, deps, true, fn);
     const loaderName = 'UniverseDynamicLoader_' + camelCase(moduleId.replace(/[:\/\\]/g, '_'));
@@ -13,8 +14,8 @@ __UniverseNPMDynamicLoader = function(moduleId, deps, sysCfg, fn, indexes){
     if (typeof sysCfg === 'object' && Object.keys(sysCfg).length) {
         System.config(sysCfg);
     }
-    // Register our loader
-    System.set(loaderName, System.newModule({
+
+    const _loader = {
         locate: function locate(params) {
             var name = params.name;
             var metadata = params.metadata;
@@ -30,7 +31,7 @@ __UniverseNPMDynamicLoader = function(moduleId, deps, sysCfg, fn, indexes){
             });
         },
         fetch: function fetch () {
-            // we don't need to fetch anything for this to work
+            // we don't need to fetch anything for local bundle
             return '';
         },
         instantiate: function instantiate (params) {
@@ -39,7 +40,9 @@ __UniverseNPMDynamicLoader = function(moduleId, deps, sysCfg, fn, indexes){
                 return _bundleRequire(indexes[metadata.submoduleName] || metadata.submoduleName);
             });
         }
-    }));
+    };
+    // Register our loader
+    System.set(loaderName, System.newModule(_loader));
 };
 
 var camelCase = function () {

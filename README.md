@@ -78,6 +78,28 @@ Our import in es6 will be looks like:
 import {globalizeDateLocalizer} from '/myPacks/react-widgets/lib/globalize-localizers';
 ```
 
+There is possible only if file is required, but if in package are optional files to import (or others entry)
+We can pass to `*.npm.json` other files that should be bundled.
+Key  `entries` is for that situations.
+
+e.g.:
+```
+{ //some.npm.json
+    "packages": {
+        "globalize": "0.1.1"
+    },
+    "entries": [
+        "globalize/lib/cultures/globalize.culture.pl-PL.js"
+    ]
+}
+
+```
+
+importing in es6:
+```
+import from '/some/globalize/lib/cultures/globalize.culture.pl-PL'   
+```
+
 #### browserify
 This package uses browserify for bundling.
 You can pass options in the same file under key **browserify** to make changes on this process

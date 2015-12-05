@@ -4,17 +4,9 @@ const stripJsonComments = Npm.require('strip-json-comments');
 const npm = Npm.require('npm');
 const os = Npm.require('os');
 const {fs, path} = Plugin;
-
-/**
- * Logs given messages to a file
- *
- * @methodName logMsg
- * @param {...String} args - collection/map/whatever of arguments to be logged
- */
-function logMsg(...args) {
-    console.log('=>',...args, '\r\n');
-    Plugin.nudge && Plugin.nudge();
-}
+const STATUS_MAX_LENGTH = 40;
+const NPM_INSTALL_DIR = path.resolve(Plugin.convertToStandardPath(os.tmpdir()), 'universe-npm');
+let usersNpmInstallDir;
 
 const getString = Meteor.wrapAsync((bundle, cb) => {
     let string = '';
@@ -35,15 +27,15 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         return file.getSourceHash() + getProjectSourcePath(file) + JSON.stringify(file.getFileOptions());
     }
 
-    compileResultSize(compileResult) {
-        return compileResult.length * 2;
+    compileResultSize({data}) {
+        return data.length;
     }
 
-    addCompileResult(file, compileResult) {
+    addCompileResult(file, {data}) {
         return file.addJavaScript({
             path: file.getPathInPackage() + '.js',
             sourcePath: file.getPathInPackage(),
-            data: compileResult
+            data
         });
     }
 
@@ -79,10 +71,9 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
     }
 
 
-
     compileOneFile(file) {
         const sourcePath = getProjectSourcePath(file);
-        logMsg('Universe NPM: ' + sourcePath);
+        logArrow('Universe NPM:', sourcePath);
         try {
             const {source, config, moduleId} = this.prepareSource(file);
             const optionsForBrowserify = this.getBrowserifyOptions(file, config.browserify);
@@ -92,19 +83,15 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
             this.applyTransforms(browserify, optionsForBrowserify);
             const bundle = browserify.bundle();
             bundle.setEncoding('utf8');
-            return this.getCompileResult(bundle, config.system, moduleId);
+            return this.getCompileResult(bundle, config.system, moduleId, file);
         } catch (_error) {
-            Plugin.nudge && Plugin.nudge();
-            file.error({
-                message: _error.message,
-                sourcePath
-            });
+            file.error(_.extend({sourcePath}, _error));
         }
     }
 
     /**
      * Applies supplied browserify transforms to source files
-     * @param {mystery} browserify -  the browserify instance
+     * @param {bundle} browserify -  the browserify instance
      * @param {object} browserifyOptions - map in the format of { ..., transformName: { ...transformOptions... }, ... }
      */
     applyTransforms(browserify, browserifyOptions) {
@@ -115,7 +102,7 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         }
     }
 
-    getCompileResult(bundle, {dependencies, config, _bundleIndexes}, moduleId) {
+    getCompileResult(bundle, {dependencies, config, _bundleIndexes}, moduleId, file) {
         const source = getString(bundle);
         if (!Array.isArray(dependencies)) {
             dependencies = [];
@@ -127,13 +114,15 @@ class UniverseModulesNPMBuilder extends CachingCompiler {
         const depPromisesStr = dependencies.map(dep =>
             `"${System.normalizeSync(dep)}"`
         ).join(',') || '';
-        return (
-`
-__UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(config)}, (function(require, _uniSysExports, _uniSysModule) {
-    ${source}
-}), ${JSON.stringify(_bundleIndexes)});
-`
-        );
+
+        return {
+            data: (
+                `__UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(config)}, (function(require, _uniSysExports, _uniSysModule) {
+                    ${source}
+                }), ${JSON.stringify(_bundleIndexes)});
+                `
+            )
+        }
     }
 
     getBrowserifyOptions(file, userOptions) {
@@ -174,9 +163,12 @@ __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(
         if (config && config.packages) {
             _.each(config.packages, (version, packageName) => {
                 lines += (
-                `    _uniSysModule.exports['${packageName}'] = require('${packageName}');` + '\n'
+                `    _uniSysModule.exports['${packageName}'] = require('${packageName}');\n`
                 );
             });
+            if (Array.isArray(config.entries) && config.entries.length) {
+                lines += config.entries.map(entry => `    require('${entry}');`).join('\n');
+            }
             lines += (
                 `    _uniSysModule.exports._bundleRequire = require;` + '\n'
             );
@@ -224,23 +216,32 @@ __UniverseNPMDynamicLoader("${moduleId}", [${depPromisesStr}], ${JSON.stringify(
  * @returns {string} the full qualified path containing given  file
  */
 function getBasedir(file) {
-    const basedir = path.resolve(Plugin.convertToStandardPath(os.tmpdir()), 'universe-npm');
-    return path.resolve(basedir, getProjectSourcePath(file).replace(/[^a-zA-Z0-9\-]/g, '_'));
+    return path.resolve((usersNpmInstallDir || NPM_INSTALL_DIR), getProjectSourcePath(file).replace(/[^a-zA-Z0-9\-]/g, '_'));
 }
 
 const ensureDepsInstalled = Meteor.wrapAsync((basedir, packages, cb) => {
-    logMsg('Installing npm packages: ' + packages.join(', ') + '\r\n');
-    npm.load((err) => {
-        err && cb(err);
-        npm.commands.install(Plugin.convertToOSPath(basedir), packages, cb);
+    logMsg('Installing npm packages:', packages.join(', '));
+
+    npm.load(err => {
+        if (err) {
+            logMsg(err.message);
+            return cb();
+        }
+
+        npm.prefix = Plugin.convertToOSPath(basedir);
+        npm.commands.install(packages, e => {
+            if (e) {
+                logMsg(e.message);
+            }
+            cb();
+        });
     });
 });
 
 
 function installPackages(basedir, file, packageList) {
-    const packages = [];
-    var installedCount = 0;
-    _.map(packageList, (version, packageName) => {
+    const packages = Object.keys(packageList).map(packageName => {
+        let version = packageList[packageName];
         if (typeof version === 'object') {
             version = version.version;
         }
@@ -251,29 +252,11 @@ function installPackages(basedir, file, packageList) {
             });
             return;
         }
-        const fullPkgName = packageName + '@' + version;
-        const pgPath = path.resolve(basedir, 'node_modules', packageName);
-        if (fs.existsSync(pgPath)) {
-            try {
-                const targetPkgData = fs.readFileSync(path.resolve(pgPath, 'package.json'), 'utf8');
-                if (targetPkgData) {
-                    const targetPkg = JSON.parse(targetPkgData);
-                    if (targetPkg && version === targetPkg.version) {
-                        installedCount++;
-                    }
-                }
-            } catch (err) {
-                logMsg(...err);
-            }
-        }
-        packages.push(fullPkgName);
+        return packageName + '@' + version;
     });
 
-    if (!packages.length || installedCount === packages.length) {
-        return;
-    }
     try {
-        deleteFolderRecursive(path.resolve(basedir, 'node_modules'));
+        deleteFolderRecursive(basedir);
         savePackageJsnFile(getProjectSourcePath(file), basedir);
         ensureDepsInstalled(basedir, packages);
     } catch (err) {
@@ -302,22 +285,41 @@ function savePackageJsnFile(pgName, basedir) {
     const data = (
         `{
   "name": "${pgName.replace(/[^a-z]/g, '-')}",
-  "version": "9.9.9",
   "description": "This is stamp only",
   "license": "UNLICENSED",
   "private": true
 }`
     );
+    try {
+        if (!fs.existsSync(basedir)) {
+            fs.mkdirSync(basedir);
+        }
+        fs.writeFileSync(path.resolve(basedir, 'package.json'), data, 'utf8');
+    } catch(e){logMsg(e);}
 
-    if (!fs.existsSync(basedir)) {
-        fs.mkdir(basedir, e => !e && fs.writeFile(path.resolve(basedir, 'package.json'), data, 'utf8', () => {}));
-    } else {
-        fs.writeFile(path.resolve(basedir, 'package.json'), data, 'utf8', () => {});
-    }
 }
 
 function getProjectSourcePath (file) {
     return (file.getPackageName() || '') + '/' + file.getPathInPackage();
+}
+
+/**
+ * Logs given messages to a file
+ *
+ * @methodName logMsg
+ * @param {...String} args - collection/map/whatever of arguments to be logged
+ */
+function logMsg(...args) {
+    let text = args.join(' ');
+    const spaceLen = STATUS_MAX_LENGTH - text.length;
+    for(let i = 0; i <= spaceLen; i++){
+        text += '\b';
+    }
+    console.log(text, (spaceLen < 0? '\r\n':'\r'));
+}
+
+function logArrow(...args){
+    logMsg('=>', ...args);
 }
 
 Plugin.registerCompiler({

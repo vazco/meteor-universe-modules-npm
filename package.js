@@ -1,7 +1,7 @@
 var UNIVERSE_MODULES_VERSION = '0.6.7'; //eslint-disable-line no-var
 Package.describe({
     name: 'universe:modules-npm',
-    version: '0.9.8',
+    version: '0.9.9',
     // Brief, one-line summary of the package.
     summary: 'Import NPM packages on client & server, mapping dependencies on system js modules (useful for React)',
     // URL to the Git repository containing the source code for this package.
@@ -24,14 +24,15 @@ Package.registerBuildPlugin({
     npmDependencies: {
         'browserify': '12.0.1',
         'strip-json-comments': '2.0.0',
-        'exorcist': '0.4.0',
         'npm': '3.4.1'
     }
 });
 
 Package.onUse(function(api) {
     api.versionsFrom('1.2.0.2');
+
     api.use([
+        'underscore@1.0.4',
         'universe:modules@' + UNIVERSE_MODULES_VERSION,
         'isobuild:compiler-plugin@1.0.0',
         'ecmascript@0.1.6',
