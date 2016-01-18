@@ -1,7 +1,7 @@
 var UNIVERSE_MODULES_VERSION = '0.6.7'; //eslint-disable-line no-var
 Package.describe({
     name: 'universe:modules-npm',
-    version: '0.9.9',
+    version: '0.9.10',
     // Brief, one-line summary of the package.
     summary: 'Import NPM packages on client & server, mapping dependencies on system js modules (useful for React)',
     // URL to the Git repository containing the source code for this package.
@@ -41,7 +41,7 @@ Package.onUse(function(api) {
 
 
     api.use([
-        'universe:utilities-react@0.5.6',
+        'universe:utilities-react@0.5.3||0.5.6',
         'react-runtime@0.14.1||0.13.3'
     ], ['server', 'client'], {weak: true});
 
