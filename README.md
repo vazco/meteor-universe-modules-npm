@@ -1,4 +1,5 @@
-<a href="http://unicms.io"><img src="http://unicms.io/banners/standalone.png" /></a>
+## Abandonware
+
 # Universe Modules NPM
 Extension for package universe:modules that adds possibility of bundling npm packages into universe modules. Works on both sides (client/server). Provides mappings of dependencies npm <-> universe:modules without keeping of duplicates in npm bundle.
 
