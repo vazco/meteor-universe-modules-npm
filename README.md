@@ -135,6 +135,4 @@ It works as standalone Meteor package, but you can get much more features when u
 
 <img src="https://vazco.eu/banner.png" align="right">
 
-**Like every package maintained by [Vazco](https://vazco.eu/), /Universe Modules NPM is [MIT licensed](https://github.com/vazco/uniforms/blob/master/LICENSE).**
-
-
+**Like every package maintained by [Vazco](https://vazco.eu/), Universe Modules NPM is [MIT licensed](https://github.com/vazco/uniforms/blob/master/LICENSE).**
