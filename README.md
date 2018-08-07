@@ -1,4 +1,14 @@
-## Abandonware
+<h1 align="center">
+    <a href="https://github.com/vazco">vazco</a>/Universe Modules NPM
+</h1>
+
+&nbsp;
+
+<h3 align="center">
+  -- Abandonware. This package is deprecated! --
+</h3>
+
+&nbsp;
 
 # Universe Modules NPM
 Extension for package universe:modules that adds possibility of bundling npm packages into universe modules. Works on both sides (client/server). Provides mappings of dependencies npm <-> universe:modules without keeping of duplicates in npm bundle.
@@ -118,10 +128,13 @@ You can pass options in the same file under key **browserify** to make changes o
 }
 ```
 
-### Copyright and license
-
-Code and documentation &copy; 2015 [Vazco.eu](http://vazco.eu)
-Released under the MIT license.
+### License
 
 This package is part of [Universe](http://unicms.io), a package ecosystem based on [Meteor platform](http://meteor.com) maintained by [Vazco](http://www.vazco.eu).
 It works as standalone Meteor package, but you can get much more features when using the whole system.   
+
+<img src="https://vazco.eu/banner.png" align="right">
+
+**Like every package maintained by [Vazco](https://vazco.eu/), /Universe Modules NPM is [MIT licensed](https://github.com/vazco/uniforms/blob/master/LICENSE).**
+
+
